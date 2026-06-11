@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel – Εργασίες Τεχνικών</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.4.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f4f3;color:#1a1a1a;min-height:100vh}
+
+/* SIDEBAR */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:240px;background:#1a1a1a;color:#fff;display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:10}
+.sb-logo{padding:20px;font-size:16px;font-weight:700;border-bottom:1px solid #333;display:flex;align-items:center;gap:10px}
+.sb-logo i{font-size:22px;color:#639922}
+.sb-nav{padding:12px 0;flex:1}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;color:#aaa;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.sb-item:hover{background:#262626;color:#fff}
+.sb-item.act{background:#262626;color:#fff;border-left-color:#639922}
+.sb-item i{font-size:18px}
+.sb-footer{padding:16px 20px;border-top:1px solid #333;font-size:11px;color:#666}
+
+/* MAIN */
+.main{margin-left:240px;flex:1;display:flex;flex-direction:column}
+.topbar{background:#fff;padding:14px 28px;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;justify-content:space-between}
+.topbar h2{font-size:16px;font-weight:600}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.content{padding:24px 28px;flex:1}
+
+/* CONFIG PANEL */
+.cfg-card{background:#fff;border-radius:12px;padding:24px;border:1px solid #e5e5e5;max-width:600px;margin-bottom:24px}
+.cfg-card h3{font-size:14px;font-weight:600;margin-bottom:16px;color:#1a1a1a}
+.cfg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.fl label{display:block;font-size:11px;font-weight:700;color:#6b6b6b;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.fl input{width:100%;padding:9px 12px;border:1px solid #d5d5d5;border-radius:8px;font-size:14px;outline:none;transition:border-color .15s;font-family:inherit}
+.fl input:focus{border-color:#1a1a1a}
+.fl-full{margin-bottom:12px}
+
+/* CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.card{background:#fff;border-radius:12px;padding:20px;border:1px solid #e5e5e5}
+.card-label{font-size:12px;color:#6b6b6b;margin-bottom:6px}
+.card-val{font-size:26px;font-weight:700;color:#1a1a1a}
+.card-sub{font-size:12px;color:#6b6b6b;margin-top:4px}
+
+/* FILTERS */
+.filters{background:#fff;border-radius:12px;padding:16px 20px;border:1px solid #e5e5e5;margin-bottom:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.filter-group label{display:block;font-size:11px;font-weight:700;color:#6b6b6b;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.filter-group input,.filter-group select{padding:8px 12px;border:1px solid #d5d5d5;border-radius:8px;font-size:13px;outline:none;font-family:inherit;background:#fff}
+.filter-group select{min-width:140px}
+
+/* TABLE */
+.table-wrap{background:#fff;border-radius:12px;border:1px solid #e5e5e5;overflow:hidden}
+.table-header{padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e5e5e5}
+.table-title{font-size:14px;font-weight:600}
+table{width:100%;border-collapse:collapse}
+thead th{background:#f8f8f8;padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:#6b6b6b;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e5e5e5;white-space:nowrap}
+tbody tr{border-bottom:.5px solid #f0f0f0;transition:background .1s}
+tbody tr:hover{background:#fafafa}
+tbody td{padding:11px 16px;font-size:13px;color:#1a1a1a;vertical-align:middle}
+tbody td.secondary{color:#6b6b6b}
+.badge{font-size:11px;padding:3px 9px;border-radius:99px;background:#f0f0f0;color:#555;white-space:nowrap}
+.actions{display:flex;gap:6px}
+.act-btn{padding:5px 10px;border-radius:7px;font-size:12px;cursor:pointer;border:none;display:flex;align-items:center;gap:4px;font-family:inherit}
+.act-edit{background:#EAF3DE;color:#3B6D11}
+.act-edit:hover{background:#d4ebbb}
+.act-del{background:#FCEBEB;color:#A32D2D}
+.act-del:hover{background:#f5d5d5}
+
+/* BUTTONS */
+.btn-primary{padding:9px 18px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit}
+.btn-primary:hover{background:#333}
+.btn-outline{padding:9px 18px;background:#fff;color:#1a1a1a;border:1px solid #d5d5d5;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit}
+.btn-outline:hover{background:#f5f5f5}
+.btn-green{padding:9px 18px;background:#EAF3DE;color:#3B6D11;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit}
+.btn-green:hover{background:#d4ebbb}
+
+/* TOAST */
+.toast-fixed{position:fixed;bottom:24px;right:24px;background:#1a1a1a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;display:none;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.toast-fixed.show{display:block}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal-box{background:#fff;border-radius:16px;padding:28px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal-box h3{font-size:16px;font-weight:600;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+.modal-close-btn{background:#f0f0f0;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:#6b6b6b}
+.m-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.modal-box .fl{margin-bottom:14px}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:60px 20px;color:#6b6b6b}
+.empty-state i{font-size:48px;display:block;margin-bottom:16px;opacity:.25}
+.empty-state p{font-size:14px}
+
+/* LOADING */
+.loading{text-align:center;padding:40px;color:#6b6b6b;font-size:14px}
+
+/* VIEWS */
+.view{display:none}
+.view.act{display:block}
+
+/* TECHNICIAN SUMMARY */
+.tech-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.tech-card{background:#fff;border-radius:12px;padding:20px;border:1px solid #e5e5e5}
+.tech-card-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.tech-av{width:44px;height:44px;border-radius:50%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0}
+.tech-name{font-size:15px;font-weight:600}
+.tech-role{font-size:12px;color:#6b6b6b}
+.tech-stat{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-top:.5px solid #f0f0f0}
+.tech-stat-label{color:#6b6b6b}
+.tech-stat-val{font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-logo"><i class="ti ti-tool"></i> Admin Panel</div>
+    <div class="sb-nav">
+      <div class="sb-item act" onclick="showView('dashboard')"><i class="ti ti-layout-dashboard"></i> Επισκόπηση</div>
+      <div class="sb-item" onclick="showView('entries')"><i class="ti ti-list"></i> Εγγραφές</div>
+      <div class="sb-item" onclick="showView('technicians')"><i class="ti ti-users"></i> Τεχνικοί</div>
+      <div class="sb-item" onclick="showView('settings')"><i class="ti ti-settings"></i> Ρυθμίσεις</div>
+    </div>
+    <div class="sb-footer">Ημερολόγιο Εργασιών v2.0</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <h2 id="page-title">Επισκόπηση</h2>
+      <div class="topbar-right">
+        <span id="conn-status" style="font-size:12px;color:#6b6b6b">Μη συνδεδεμένο</span>
+        <button class="btn-primary" onclick="loadData()"><i class="ti ti-refresh"></i> Ανανέωση</button>
+        <button class="btn-green" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div id="view-dashboard" class="view act">
+        <div class="cards" id="summary-cards">
+          <div class="card"><div class="card-label">Φόρτωση...</div><div class="card-val">—</div></div>
+        </div>
+        <div class="filters">
+          <div class="filter-group">
+            <label>Από</label>
+            <input type="date" id="f-from">
+          </div>
+          <div class="filter-group">
+            <label>Έως</label>
+            <input type="date" id="f-to">
+          </div>
+          <div class="filter-group">
+            <label>Τεχνικός</label>
+            <select id="f-tech"><option value="">Όλοι</option></select>
+          </div>
+          <div class="filter-group">
+            <label>Κατηγορία</label>
+            <select id="f-cat">
+              <option value="">Όλες</option>
+              <option>🔧 Εγκατάσταση</option><option>🔩 Συντήρηση</option>
+              <option>🛠️ Επισκευή</option><option>🔍 Έλεγχος</option>
+              <option>🚗 Μεταφορά</option><option>📋 Άλλο</option>
+            </select>
+          </div>
+          <button class="btn-primary" onclick="applyFilters()"><i class="ti ti-filter"></i> Φίλτρα</button>
+          <button class="btn-outline" onclick="clearFilters()">Καθαρισμός</button>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header">
+            <span class="table-title" id="table-count">Εγγραφές</span>
+          </div>
+          <div id="table-body"></div>
+        </div>
+      </div>
+
+      <!-- ENTRIES (same as dashboard but fullscreen) -->
+      <div id="view-entries" class="view">
+        <div class="filters">
+          <div class="filter-group">
+            <label>Αναζήτηση</label>
+            <input type="text" id="f-search" placeholder="Εργασία, τεχνικός, τοποθεσία..." style="min-width:220px">
+          </div>
+          <div class="filter-group">
+            <label>Από</label><input type="date" id="f-from2">
+          </div>
+          <div class="filter-group">
+            <label>Έως</label><input type="date" id="f-to2">
+          </div>
+          <button class="btn-primary" onclick="applyFilters2()"><i class="ti ti-filter"></i> Φίλτρα</button>
+          <button class="btn-outline" onclick="clearFilters2()">Καθαρισμός</button>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header">
+            <span class="table-title" id="table-count2">Εγγραφές</span>
+          </div>
+          <div id="table-body2"></div>
+        </div>
+      </div>
+
+      <!-- TECHNICIANS -->
+      <div id="view-technicians" class="view">
+        <div class="tech-grid" id="tech-grid"></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="view-settings" class="view">
+        <div class="cfg-card">
+          <h3><i class="ti ti-database"></i> Σύνδεση Supabase</h3>
+          <div class="fl fl-full"><label>Project URL</label>
+            <input type="url" id="a-url" placeholder="https://xxxx.supabase.co" oninput="saveAdminCfg()">
+          </div>
+          <div class="fl fl-full"><label>Anon Key (ή Service Role Key για πλήρη πρόσβαση)</label>
+            <input type="text" id="a-key" placeholder="eyJhbGci..." oninput="saveAdminCfg()">
+          </div>
+          <div class="fl fl-full"><label>Όνομα πίνακα</label>
+            <input type="text" id="a-table" placeholder="work_logs" oninput="saveAdminCfg()">
+          </div>
+          <div style="display:flex;gap:10px;margin-top:4px">
+            <button class="btn-primary" onclick="testAdminConn()"><i class="ti ti-plug"></i> Δοκιμή σύνδεσης</button>
+            <button class="btn-green" onclick="loadData()"><i class="ti ti-download"></i> Φόρτωση δεδομένων</button>
+          </div>
+          <div id="cfg-msg" style="margin-top:12px;font-size:13px;color:#6b6b6b"></div>
+        </div>
+      </div>
+
+    </div><!-- .content -->
+  </div><!-- .main -->
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-bg" id="edit-modal" onclick="closeModalOut(event)">
+  <div class="modal-box">
+    <h3><i class="ti ti-edit"></i> Επεξεργασία εγγραφής
+      <button class="modal-close-btn" onclick="closeModal()"><i class="ti ti-x"></i></button>
+    </h3>
+    <div class="m-grid">
+      <div class="fl"><label>Ημερομηνία</label><input type="date" id="m-date"></div>
+      <div class="fl"><label>Τεχνικός</label><input type="text" id="m-tech"></div>
+    </div>
+    <div class="fl"><label>Περιγραφή εργασίας</label>
+      <input type="text" id="m-task" style="width:100%;padding:9px 12px;border:1px solid #d5d5d5;border-radius:8px;font-size:14px;outline:none;font-family:inherit">
+    </div>
+    <div class="m-grid">
+      <div class="fl"><label>Κατηγορία</label>
+        <select id="m-cat" style="width:100%;padding:9px 12px;border:1px solid #d5d5d5;border-radius:8px;font-size:14px;font-family:inherit">
+          <option>🔧 Εγκατάσταση</option><option>🔩 Συντήρηση</option><option>🛠️ Επισκευή</option>
+          <option>🔍 Έλεγχος</option><option>🚗 Μεταφορά</option><option>📋 Άλλο</option>
+        </select>
+      </div>
+      <div class="fl"><label>Ώρες (δεκαδ.)</label>
+        <input type="number" id="m-hours" step="0.25" min="0" style="width:100%;padding:9px 12px;border:1px solid #d5d5d5;border-radius:8px;font-size:14px;font-family:inherit">
+      </div>
+    </div>
+    <div class="fl"><label>Τοποθεσία / Πελάτης</label>
+      <input type="text" id="m-loc" style="width:100%;padding:9px 12px;border:1px solid #d5d5d5;border-radius:8px;font-size:14px;font-family:inherit">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn-primary" style="flex:1" onclick="saveEdit()"><i class="ti ti-check"></i> Αποθήκευση</button>
+      <button class="btn-outline" onclick="closeModal()">Ακύρωση</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-fixed" id="toast"></div>
+
+<script>
+const AC='admin_cfg_v1';
+let allData=[],filteredData=[],editingId=null;
+
+function acfg(){try{return JSON.parse(localStorage.getItem(AC)||'{}')}catch{return{}}}
+function saveAdminCfg(){
+  localStorage.setItem(AC,JSON.stringify({url:gv('a-url'),key:gv('a-key'),table:gv('a-table')||'work_logs'}));
+}
+function loadAdminCfgUI(){
+  const o=acfg();
+  sv('a-url',o.url||'');sv('a-key',o.key||'');sv('a-table',o.table||'work_logs');
+}
+function gv(id){return document.getElementById(id).value}
+function sv(id,val){const el=document.getElementById(id);if(el)el.value=val}
+function fmtT(m){const h=Math.floor(m/60),mm=m%60;return h&&mm?h+'ώ '+mm+'λ.':h?h+'ώ.':mm+'λ.'}
+function fmtDate(d){if(!d)return'—';return new Date(d+'T00:00:00').toLocaleDateString('el-GR',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function initials(n){const p=(n||'').trim().split(' ').filter(Boolean);return p.length===0?'?':p.length===1?p[0][0].toUpperCase():(p[0][0]+p[p.length-1][0]).toUpperCase()}
+function toast(msg,col='#1a1a1a'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.style.background=col;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),3000);
+}
+function showView(v){
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('act'));
+  document.querySelectorAll('.sb-item').forEach(x=>x.classList.remove('act'));
+  document.getElementById('view-'+v).classList.add('act');
+  const idx={dashboard:0,entries:1,technicians:2,settings:3}[v];
+  document.querySelectorAll('.sb-item')[idx].classList.add('act');
+  const titles={dashboard:'Επισκόπηση',entries:'Εγγραφές',technicians:'Τεχνικοί',settings:'Ρυθμίσεις'};
+  document.getElementById('page-title').textContent=titles[v];
+  if(v==='dashboard')renderTable(filteredData.length?filteredData:allData);
+  if(v==='entries')renderTable2(filteredData.length?filteredData:allData);
+  if(v==='technicians')renderTechnicians();
+}
+
+async function loadData(){
+  const o=acfg();
+  if(!o.url||!o.key){showView('settings');toast('⚠ Βάλε πρώτα τα στοιχεία Supabase στις Ρυθμίσεις.','#854F0B');return}
+  document.getElementById('conn-status').textContent='Φόρτωση...';
+  document.getElementById('table-body').innerHTML='<div class="loading"><i class="ti ti-loader" style="font-size:24px"></i><br>Φόρτωση δεδομένων...</div>';
+  try{
+    const r=await fetch(o.url+'/rest/v1/'+(o.table||'work_logs')+'?order=date.desc&limit=1000',{
+      headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}
+    });
+    if(!r.ok){const t=await r.text();throw new Error(r.status+': '+t.slice(0,80))}
+    allData=await r.json();
+    filteredData=[];
+    document.getElementById('conn-status').textContent='✓ '+allData.length+' εγγραφές';
+    renderSummaryCards(allData);
+    renderTable(allData);
+    renderTable2(allData);
+    renderTechnicians();
+    populateTechFilter();
+    toast('✓ '+allData.length+' εγγραφές φορτώθηκαν','#3B6D11');
+  }catch(e){
+    document.getElementById('conn-status').textContent='✗ Σφάλμα σύνδεσης';
+    document.getElementById('table-body').innerHTML='<div class="empty-state"><i class="ti ti-alert-circle"></i><p>Σφάλμα: '+esc(e.message)+'</p></div>';
+    toast('✗ '+e.message,'#A32D2D');
+  }
+}
+
+function renderSummaryCards(data){
+  const tot=data.reduce((s,e)=>s+(e.duration_mins||0),0);
+  const techs=[...new Set(data.map(e=>e.technician).filter(Boolean))];
+  const days=[...new Set(data.map(e=>e.date))].length;
+  const avg=days?Math.round(tot/days):0;
+  document.getElementById('summary-cards').innerHTML=`
+    <div class="card"><div class="card-label">Σύνολο ωρών</div><div class="card-val">${Math.floor(tot/60)}<span style="font-size:16px">ώ ${tot%60}λ.</span></div><div class="card-sub">σε ${days} ημέρες</div></div>
+    <div class="card"><div class="card-label">Εγγραφές</div><div class="card-val">${data.length}</div></div>
+    <div class="card"><div class="card-label">Τεχνικοί</div><div class="card-val">${techs.length}</div></div>
+    <div class="card"><div class="card-label">Μέσος όρος/ημέρα</div><div class="card-val">${Math.floor(avg/60)}<span style="font-size:16px">ώ ${avg%60}λ.</span></div></div>`;
+}
+
+function renderTable(data){
+  const el=document.getElementById('table-body');
+  document.getElementById('table-count').textContent='Εγγραφές ('+data.length+')';
+  if(!data.length){el.innerHTML='<div class="empty-state"><i class="ti ti-clipboard-list"></i><p>Δεν βρέθηκαν εγγραφές.</p></div>';return}
+  let h=`<table><thead><tr>
+    <th>Ημερομηνία</th><th>Τεχνικός</th><th>Εργασία</th><th>Κατηγορία</th><th>Διάρκεια</th><th>Τοποθεσία</th><th>Ενέργειες</th>
+  </tr></thead><tbody>`;
+  data.forEach(e=>{
+    h+=`<tr>
+      <td class="secondary" style="white-space:nowrap">${fmtDate(e.date)}</td>
+      <td><strong>${esc(e.technician||'—')}</strong></td>
+      <td style="max-width:240px">${esc(e.task||'')}</td>
+      <td><span class="badge">${esc(e.category||'')}</span></td>
+      <td class="secondary" style="white-space:nowrap">${fmtT(e.duration_mins||0)}</td>
+      <td class="secondary">${esc(e.location||'—')}</td>
+      <td><div class="actions">
+        <button class="act-btn act-edit" onclick='openEdit(${JSON.stringify(e)})'><i class="ti ti-edit"></i> Επεξ.</button>
+        <button class="act-btn act-del" onclick="delEntry(${e.id})"><i class="ti ti-trash"></i> Διαγρ.</button>
+      </div></td>
+    </tr>`;
+  });
+  h+='</tbody></table>';
+  el.innerHTML=h;
+}
+
+function renderTable2(data){
+  const el=document.getElementById('table-body2');
+  if(!el)return;
+  document.getElementById('table-count2').textContent='Εγγραφές ('+data.length+')';
+  if(!data.length){el.innerHTML='<div class="empty-state"><i class="ti ti-clipboard-list"></i><p>Δεν βρέθηκαν εγγραφές.</p></div>';return}
+  let h=`<table><thead><tr>
+    <th>Ημερομηνία</th><th>Τεχνικός</th><th>Εργασία</th><th>Κατηγορία</th><th>Διάρκεια</th><th>Τοποθεσία</th><th>Ενέργειες</th>
+  </tr></thead><tbody>`;
+  data.forEach(e=>{
+    h+=`<tr>
+      <td class="secondary" style="white-space:nowrap">${fmtDate(e.date)}</td>
+      <td><strong>${esc(e.technician||'—')}</strong></td>
+      <td style="max-width:200px">${esc(e.task||'')}</td>
+      <td><span class="badge">${esc(e.category||'')}</span></td>
+      <td class="secondary">${fmtT(e.duration_mins||0)}</td>
+      <td class="secondary">${esc(e.location||'—')}</td>
+      <td><div class="actions">
+        <button class="act-btn act-edit" onclick='openEdit(${JSON.stringify(e)})'><i class="ti ti-edit"></i> Επεξ.</button>
+        <button class="act-btn act-del" onclick="delEntry(${e.id})"><i class="ti ti-trash"></i> Διαγρ.</button>
+      </div></td>
+    </tr>`;
+  });
+  h+='</tbody></table>';
+  el.innerHTML=h;
+}
+
+function renderTechnicians(){
+  const techs={};
+  allData.forEach(e=>{
+    const k=e.technician||'Άγνωστος';
+    if(!techs[k])techs[k]={name:k,entries:0,mins:0,days:new Set(),cats:{}};
+    techs[k].entries++;
+    techs[k].mins+=e.duration_mins||0;
+    techs[k].days.add(e.date);
+    techs[k].cats[e.category]=(techs[k].cats[e.category]||0)+1;
+  });
+  const el=document.getElementById('tech-grid');
+  if(!Object.keys(techs).length){el.innerHTML='<div class="empty-state"><i class="ti ti-users"></i><p>Δεν υπάρχουν δεδομένα.</p></div>';return}
+  el.innerHTML=Object.values(techs).sort((a,b)=>b.mins-a.mins).map(t=>{
+    const topCat=Object.entries(t.cats).sort((a,b)=>b[1]-a[1])[0];
+    return`<div class="tech-card">
+      <div class="tech-card-top">
+        <div class="tech-av">${initials(t.name)}</div>
+        <div><div class="tech-name">${esc(t.name)}</div><div class="tech-role">Τεχνικός</div></div>
+      </div>
+      <div class="tech-stat"><span class="tech-stat-label">Σύνολο ωρών</span><span class="tech-stat-val">${fmtT(t.mins)}</span></div>
+      <div class="tech-stat"><span class="tech-stat-label">Εγγραφές</span><span class="tech-stat-val">${t.entries}</span></div>
+      <div class="tech-stat"><span class="tech-stat-label">Ημέρες εργασίας</span><span class="tech-stat-val">${t.days.size}</span></div>
+      <div class="tech-stat"><span class="tech-stat-label">Κύρια κατηγορία</span><span class="tech-stat-val">${topCat?esc(topCat[0]):'—'}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function populateTechFilter(){
+  const techs=[...new Set(allData.map(e=>e.technician).filter(Boolean))].sort();
+  const sel=document.getElementById('f-tech');
+  sel.innerHTML='<option value="">Όλοι</option>'+techs.map(t=>`<option>${esc(t)}</option>`).join('');
+}
+
+function applyFilters(){
+  const from=gv('f-from'),to=gv('f-to'),tech=gv('f-tech'),cat=gv('f-cat');
+  filteredData=allData.filter(e=>{
+    if(from&&e.date<from)return false;
+    if(to&&e.date>to)return false;
+    if(tech&&e.technician!==tech)return false;
+    if(cat&&e.category!==cat)return false;
+    return true;
+  });
+  renderSummaryCards(filteredData);
+  renderTable(filteredData);
+}
+function clearFilters(){sv('f-from','');sv('f-to','');sv('f-tech','');sv('f-cat','');filteredData=[];renderSummaryCards(allData);renderTable(allData)}
+function applyFilters2(){
+  const q=gv('f-search').toLowerCase(),from=gv('f-from2'),to=gv('f-to2');
+  const res=allData.filter(e=>{
+    if(from&&e.date<from)return false;
+    if(to&&e.date>to)return false;
+    if(q&&!(e.task||'').toLowerCase().includes(q)&&!(e.technician||'').toLowerCase().includes(q)&&!(e.location||'').toLowerCase().includes(q))return false;
+    return true;
+  });
+  renderTable2(res);
+}
+function clearFilters2(){sv('f-search','');sv('f-from2','');sv('f-to2','');renderTable2(allData)}
+
+function openEdit(e){
+  editingId=e.id;
+  sv('m-date',e.date||'');sv('m-tech',e.technician||'');sv('m-task',e.task||'');
+  sv('m-loc',e.location||'');sv('m-hours',((e.duration_mins||0)/60).toFixed(2));
+  document.getElementById('m-cat').value=e.category||'📋 Άλλο';
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeModal(){document.getElementById('edit-modal').classList.remove('open');editingId=null}
+function closeModalOut(ev){if(ev.target===document.getElementById('edit-modal'))closeModal()}
+
+async function saveEdit(){
+  if(!editingId)return;
+  const o=acfg();
+  const mins=Math.round(parseFloat(gv('m-hours'))*60)||0;
+  const payload={date:gv('m-date'),technician:gv('m-tech'),task:gv('m-task'),category:document.getElementById('m-cat').value,duration_mins:mins,location:gv('m-loc')};
+  try{
+    const r=await fetch(o.url+'/rest/v1/'+(o.table||'work_logs')+'?id=eq.'+editingId,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key,'Prefer':'return=minimal'},
+      body:JSON.stringify(payload)
+    });
+    if(r.ok){
+      const i=allData.findIndex(e=>e.id===editingId);
+      if(i>=0)allData[i]={...allData[i],...payload};
+      closeModal();renderTable(filteredData.length?filteredData:allData);renderTable2(allData);renderTechnicians();renderSummaryCards(allData);
+      toast('✓ Η εγγραφή ενημερώθηκε!','#3B6D11');
+    }else{const t=await r.text();toast('✗ Σφάλμα: '+t.slice(0,80),'#A32D2D')}
+  }catch(e){toast('✗ '+e.message,'#A32D2D')}
+}
+
+async function delEntry(id){
+  if(!confirm('Διαγραφή αυτής της εγγραφής από το Supabase;'))return;
+  const o=acfg();
+  try{
+    const r=await fetch(o.url+'/rest/v1/'+(o.table||'work_logs')+'?id=eq.'+id,{
+      method:'DELETE',
+      headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}
+    });
+    if(r.ok){
+      allData=allData.filter(e=>e.id!==id);filteredData=filteredData.filter(e=>e.id!==id);
+      renderTable(filteredData.length?filteredData:allData);renderTable2(allData);renderTechnicians();renderSummaryCards(allData);
+      document.getElementById('conn-status').textContent='✓ '+allData.length+' εγγραφές';
+      toast('✓ Διαγράφηκε!','#3B6D11');
+    }else toast('✗ Σφάλμα διαγραφής','#A32D2D');
+  }catch(e){toast('✗ '+e.message,'#A32D2D')}
+}
+
+async function testAdminConn(){
+  const o=acfg();
+  if(!o.url||!o.key){document.getElementById('cfg-msg').textContent='⚠ Συμπλήρωσε URL και Key.';return}
+  document.getElementById('cfg-msg').textContent='⏳ Δοκιμή...';
+  try{
+    const r=await fetch(o.url+'/rest/v1/'+(o.table||'work_logs')+'?limit=1',{
+      headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}
+    });
+    if(r.ok){document.getElementById('cfg-msg').style.color='#3B6D11';document.getElementById('cfg-msg').textContent='✓ Σύνδεση επιτυχής!'}
+    else{document.getElementById('cfg-msg').style.color='#A32D2D';document.getElementById('cfg-msg').textContent='✗ Σφάλμα '+r.status}
+  }catch(e){document.getElementById('cfg-msg').style.color='#A32D2D';document.getElementById('cfg-msg').textContent='✗ '+e.message}
+}
+
+function exportExcel(){
+  const data=filteredData.length?filteredData:allData;
+  if(!data.length){toast('⚠ Δεν υπάρχουν δεδομένα.','#854F0B');return}
+  const rows=data.map(e=>({'Ημερομηνία':e.date,'Τεχνικός':e.technician||'','Εργασία':e.task||'','Κατηγορία':e.category||'','Ώρες':Math.floor((e.duration_mins||0)/60),'Λεπτά':(e.duration_mins||0)%60,'Σύνολο ώρες':parseFloat(((e.duration_mins||0)/60).toFixed(2)),'Τοποθεσία':e.location||'','Ημ. εισαγωγής':e.created_at||''}));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:12},{wch:20},{wch:40},{wch:16},{wch:7},{wch:7},{wch:12},{wch:24},{wch:22}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Εγγραφές');
+  // Summary per tech
+  const byT={};data.forEach(e=>{const k=e.technician||'Άγνωστος';if(!byT[k])byT[k]=0;byT[k]+=(e.duration_mins||0)});
+  const ws2=XLSX.utils.json_to_sheet(Object.entries(byT).map(([t,m])=>({'Τεχνικός':t,'Σύνολο ώρες':parseFloat((m/60).toFixed(2)),'Εγγραφές':data.filter(e=>(e.technician||'Άγνωστος')===t).length})));
+  XLSX.utils.book_append_sheet(wb,ws2,'Σύνοψη τεχνικών');
+  XLSX.writeFile(wb,'admin_εργασιες_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('✓ Excel κατέβηκε!','#3B6D11');
+}
+
+(function init(){
+  loadAdminCfgUI();
+  const o=acfg();
+  if(o.url&&o.key)loadData();
+  else showView('settings');
+})();
+</script>
+</body>
+</html>
