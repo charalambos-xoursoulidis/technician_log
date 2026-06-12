@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<title>Ημερολόγιο Εργασιών</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.4.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#fff;--bg2:#f5f5f4;--bg3:#eceae6;--txt:#1a1a1a;--txt2:#6b6b6b;
+  --brd:rgba(0,0,0,0.12);--brd2:rgba(0,0,0,0.22);
+  --ok:#3B6D11;--ok-bg:#EAF3DE;--err:#A32D2D;--err-bg:#FCEBEB;
+  --warn:#854F0B;--warn-bg:#FAEEDA;--info:#185FA5;--info-bg:#E6F1FB;
+  --r:10px;--rl:14px;--accent:#1a1a1a;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1c1c1c;--bg2:#272727;--bg3:#333;--txt:#f0f0f0;--txt2:#999;
+  --brd:rgba(255,255,255,0.1);--brd2:rgba(255,255,255,0.2);
+  --ok:#C0DD97;--ok-bg:#173404;--err:#F09595;--err-bg:#501313;
+  --warn:#FAC775;--warn-bg:#412402;--info:#B5D4F4;--info-bg:#042C53;
+}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg3);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--txt)}
+
+/* ===== SCREENS ===== */
+.screen{display:none;min-height:100vh}
+.screen.act{display:flex;flex-direction:column}
+
+/* ===== LOGIN ===== */
+.login-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg3)}
+.login-card{background:var(--bg);border-radius:20px;padding:32px 28px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,.12)}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo i{font-size:48px;color:var(--txt)}
+.login-logo h1{font-size:22px;font-weight:700;margin-top:8px}
+.login-logo p{font-size:13px;color:var(--txt2);margin-top:4px}
+.login-tabs{display:flex;background:var(--bg2);border-radius:var(--r);padding:4px;margin-bottom:24px;gap:4px}
+.login-tab{flex:1;padding:8px;border:none;background:none;border-radius:8px;font-size:13px;font-weight:600;color:var(--txt2);cursor:pointer;transition:all .15s}
+.login-tab.act{background:var(--bg);color:var(--txt);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.login-field{margin-bottom:16px}
+.login-field label{display:block;font-size:11px;font-weight:700;color:var(--txt2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.login-field input{width:100%;padding:13px 16px;border:1px solid var(--brd2);border-radius:var(--r);font-size:18px;background:var(--bg);color:var(--txt);font-family:inherit;letter-spacing:.1em;text-align:center;outline:none;transition:border-color .15s}
+.login-field input:focus{border-color:var(--txt)}
+.login-btn{width:100%;padding:14px;background:var(--txt);color:var(--bg);border:none;border-radius:var(--r);font-size:16px;font-weight:700;cursor:pointer;margin-top:4px}
+.login-btn:active{opacity:.8}
+.login-err{margin-top:12px;padding:10px 14px;background:var(--err-bg);color:var(--err);border-radius:var(--r);font-size:13px;text-align:center;display:none}
+
+/* ===== SHARED APP ===== */
+.app-wrap{flex:1;display:flex;flex-direction:column;max-width:480px;width:100%;margin:0 auto;background:var(--bg)}
+.app-hdr{padding:12px 16px 10px;background:var(--bg);border-bottom:.5px solid var(--brd);display:flex;align-items:center;justify-content:space-between}
+.app-hdr-left h1{font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px}
+.app-hdr-left p{font-size:11px;color:var(--txt2);margin-top:1px}
+.logout-btn{padding:6px 12px;background:var(--bg2);border:none;border-radius:8px;font-size:12px;color:var(--txt2);cursor:pointer;display:flex;align-items:center;gap:5px}
+.nav{display:flex;background:var(--bg);border-bottom:.5px solid var(--brd);position:sticky;top:0;z-index:50}
+.nb{flex:1;padding:9px 4px 7px;background:none;border:none;border-bottom:2px solid transparent;font-size:10px;font-weight:600;color:var(--txt2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.nb i{font-size:19px}
+.nb.act{color:var(--txt);border-bottom-color:var(--txt)}
+.sec{display:none;padding:16px;flex:1}
+.sec.act{display:block}
+
+/* ===== FORM ===== */
+.fl{margin-bottom:13px}
+.fl label{display:block;font-size:11px;font-weight:700;color:var(--txt2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+.fl input,.fl textarea,.fl select{width:100%;padding:11px 13px;border:.5px solid var(--brd2);border-radius:var(--r);font-size:16px;background:var(--bg);color:var(--txt);font-family:inherit;-webkit-appearance:none;outline:none;transition:border-color .15s}
+.fl input:focus,.fl textarea:focus,.fl select:focus{border-color:var(--txt)}
+.fl textarea{resize:vertical;min-height:78px;line-height:1.5}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-p{width:100%;padding:13px;background:var(--txt);color:var(--bg);border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-p:active{opacity:.8}
+.btn-o{width:100%;padding:11px;background:var(--bg);border:.5px solid var(--brd2);border-radius:var(--r);font-size:13px;color:var(--txt);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:9px}
+.btn-o:active{background:var(--bg2)}
+.btn-s{width:100%;padding:11px;background:var(--bg2);border:none;border-radius:var(--r);font-size:14px;color:var(--txt);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:8px}
+.toast{display:none;margin-top:11px;padding:11px 14px;border-radius:var(--r);font-size:13px;text-align:center;font-weight:500}
+.toast.ok{background:var(--ok-bg);color:var(--ok)}
+.toast.err{background:var(--err-bg);color:var(--err)}
+.toast.info{background:var(--info-bg);color:var(--info)}
+.toast.warn{background:var(--warn-bg);color:var(--warn)}
+
+/* ===== TECH BAR ===== */
+.tech-bar{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);margin-bottom:14px}
+.av{width:38px;height:38px;border-radius:50%;background:var(--txt);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--bg);flex-shrink:0}
+.sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:#639922}.dot-pend{background:#BA7517}.dot-off{background:#888}
+
+/* ===== LOG ENTRIES ===== */
+.dg{margin-bottom:18px}
+.dh{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;padding:6px 0;border-bottom:.5px solid var(--brd);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.dt{font-size:12px;color:var(--txt);background:var(--bg2);padding:2px 9px;border-radius:99px;font-weight:600}
+.ec{background:var(--bg);border:.5px solid var(--brd);border-radius:var(--rl);padding:12px 14px;margin-bottom:8px}
+.et{font-size:15px;font-weight:500;margin-bottom:5px;line-height:1.4}
+.em{display:flex;gap:8px;font-size:12px;color:var(--txt2);flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.bdg{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--bg2);color:var(--txt2)}
+.entry-btns{display:flex;gap:8px}
+.edit-btn{flex:1;padding:7px;background:var(--bg2);border:none;border-radius:8px;font-size:12px;color:var(--txt);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-weight:500}
+.del-btn{padding:7px 12px;background:var(--err-bg);border:none;border-radius:8px;font-size:12px;color:var(--err);cursor:pointer;display:flex;align-items:center;gap:4px}
+.empty{text-align:center;padding:40px 20px;color:var(--txt2);font-size:14px}
+.empty i{font-size:40px;display:block;margin-bottom:10px;opacity:.25}
+
+/* ===== STATS ===== */
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.sc{background:var(--bg2);border-radius:var(--r);padding:14px}
+.sl{font-size:11px;color:var(--txt2);margin-bottom:4px}
+.sv{font-size:22px;font-weight:600}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.bl{width:28px;font-size:11px;color:var(--txt2);text-align:right}
+.bt{flex:1;height:7px;background:var(--bg2);border-radius:99px;overflow:hidden}
+.bf{height:100%;border-radius:99px;background:var(--txt)}
+.bv{width:40px;font-size:11px;color:var(--txt2)}
+.stitle{font-size:13px;font-weight:600;margin-bottom:8px}
+.sep{height:.5px;background:var(--brd);margin:14px 0}
+
+/* ===== ADMIN TABLE ===== */
+.tbl-wrap{border:.5px solid var(--brd);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
+.tbl-hdr{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:.5px solid var(--brd);background:var(--bg2)}
+.tbl-title{font-size:13px;font-weight:600}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;min-width:600px}
+thead th{background:var(--bg2);padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;border-bottom:.5px solid var(--brd);white-space:nowrap}
+tbody tr{border-bottom:.5px solid var(--brd)}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:10px 12px;font-size:13px;vertical-align:middle}
+.act-btns{display:flex;gap:5px}
+.act-btn{padding:4px 9px;border-radius:6px;font-size:11px;cursor:pointer;border:none;display:flex;align-items:center;gap:3px;font-family:inherit;font-weight:600}
+.act-edit{background:var(--ok-bg);color:var(--ok)}
+.act-del{background:var(--err-bg);color:var(--err)}
+.tbl-badge{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--bg2);color:var(--txt2);white-space:nowrap}
+
+/* ===== TECH CARDS (admin) ===== */
+.tech-cards{display:grid;grid-template-columns:1fr;gap:12px}
+.tech-card{background:var(--bg);border:.5px solid var(--brd);border-radius:var(--rl);padding:14px}
+.tech-card-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.tech-av-lg{width:44px;height:44px;border-radius:50%;background:var(--txt);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--bg);flex-shrink:0}
+.tech-name{font-size:15px;font-weight:600}
+.tech-code{font-size:12px;color:var(--txt2);font-family:monospace;margin-top:2px}
+.tech-stats-row{display:flex;gap:16px;font-size:12px;flex-wrap:wrap}
+.tech-stat{text-align:center}
+.tech-stat-val{font-size:16px;font-weight:700;display:block}
+.tech-stat-lbl{color:var(--txt2)}
+.code-display{background:var(--bg2);border-radius:8px;padding:10px 14px;font-size:20px;font-weight:700;letter-spacing:.15em;font-family:monospace;text-align:center;color:var(--txt);margin-top:10px;border:.5px solid var(--brd)}
+.toggle-btn{padding:4px 10px;background:var(--warn-bg);color:var(--warn);border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;margin-left:auto}
+
+/* ===== MODAL ===== */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-end;justify-content:center}
+.modal-ov.open{display:flex}
+.modal{background:var(--bg);border-radius:20px 20px 0 0;padding:20px 16px 32px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:var(--bg2);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;color:var(--txt2)}
+
+/* ===== ADMIN FILTERS ===== */
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.fg label{font-size:10px;font-weight:700;color:var(--txt2);display:block;margin-bottom:3px;text-transform:uppercase}
+.fg input,.fg select{padding:8px 10px;border:.5px solid var(--brd2);border-radius:8px;font-size:13px;background:var(--bg);color:var(--txt);font-family:inherit;outline:none}
+.cfg-title{font-size:14px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:.5px solid var(--brd)}
+.info-box{background:var(--info-bg);border-radius:var(--r);padding:11px 13px;margin-bottom:12px;font-size:12px;color:var(--info);line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="screen-login" class="screen act">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-logo">
+        <i class="ti ti-tool"></i>
+        <h1>Ημερολόγιο Εργασιών</h1>
+        <p>ΑΦΟΙ Χουρσουλίδη</p>
+      </div>
+      <div class="login-tabs">
+        <button class="login-tab act" onclick="setLoginMode('tech')"><i class="ti ti-id-badge"></i> Τεχνικός</button>
+        <button class="login-tab" onclick="setLoginMode('admin')"><i class="ti ti-shield"></i> Διαχειριστής</button>
+      </div>
+      <div class="login-field">
+        <label id="login-lbl">Κωδικός τεχνικού</label>
+        <input type="text" id="login-code" placeholder="π.χ. AB1234" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="login-btn" onclick="doLogin()">Σύνδεση <i class="ti ti-arrow-right"></i></button>
+      <div class="login-err" id="login-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TECH SCREEN ===== -->
+<div id="screen-tech" class="screen">
+  <div class="app-wrap">
+    <div class="app-hdr">
+      <div class="app-hdr-left">
+        <h1><i class="ti ti-tool"></i> Εργασίες μου</h1>
+        <p id="tech-hdr-date"></p>
+      </div>
+      <button class="logout-btn" onclick="logout()"><i class="ti ti-logout"></i> Έξοδος</button>
+    </div>
+    <nav class="nav">
+      <button class="nb act" onclick="showTechTab('add')"><i class="ti ti-plus"></i>Νέα</button>
+      <button class="nb" onclick="showTechTab('log')"><i class="ti ti-list"></i>Αρχείο</button>
+      <button class="nb" onclick="showTechTab('stats')"><i class="ti ti-chart-bar"></i>Στατιστικά</button>
+    </nav>
+
+    <!-- ΝΕΑ -->
+    <div id="tech-tab-add" class="sec act">
+      <div class="tech-bar">
+        <div class="av" id="tech-av">?</div>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:600" id="tech-name-disp">—</div>
+          <div style="font-size:11px;color:var(--txt2)">Τεχνικός · <span id="tech-code-disp" style="font-family:monospace;font-weight:700"></span></div>
+        </div>
+        <div class="sync-dot dot-off" id="tech-sync-dot"></div>
+        <span style="font-size:11px;color:var(--txt2)" id="tech-sync-lbl">—</span>
+      </div>
+      <div class="fl"><label>Ημερομηνία</label><input type="date" id="e-date"></div>
+      <div class="fl"><label>Περιγραφή εργασίας</label><textarea id="e-task" placeholder="Τι δουλειά έκανες..."></textarea></div>
+      <div class="fl"><label>Κατηγορία</label>
+        <select id="e-cat">
+          <option>🔧 Εγκατάσταση</option><option>🔩 Συντήρηση</option><option>🛠️ Επισκευή</option>
+          <option>🔍 Έλεγχος</option><option>🚗 Μεταφορά</option><option>📋 Άλλο</option>
+        </select>
+      </div>
+      <div class="fl"><label>Διάρκεια</label>
+        <div class="g2">
+          <input type="number" id="e-h" placeholder="Ώρες" min="0" max="24" inputmode="numeric">
+          <input type="number" id="e-m" placeholder="Λεπτά" min="0" max="59" step="15" inputmode="numeric">
+        </div>
+      </div>
+      <div class="fl"><label>Τοποθεσία / Πελάτης (προαιρετικό)</label>
+        <input type="text" id="e-loc" placeholder="π.χ. Βέροια – Κτίριο ΑΒΓ">
+      </div>
+      <button class="btn-p" onclick="saveEntry()"><i class="ti ti-device-floppy"></i> Αποθήκευση</button>
+      <div class="toast" id="add-toast"></div>
+    </div>
+
+    <!-- ΑΡΧΕΙΟ -->
+    <div id="tech-tab-log" class="sec">
+      <button class="btn-o" onclick="techExportExcel()"><i class="ti ti-file-spreadsheet"></i> Εξαγωγή σε Excel</button>
+      <button class="btn-o" onclick="syncPending()"><i class="ti ti-cloud-upload"></i> Συγχρονισμός</button>
+      <div class="toast" id="log-toast"></div>
+      <div id="log-container" style="margin-top:4px"></div>
+    </div>
+
+    <!-- ΣΤΑΤΙΣΤΙΚΑ ΤΕΧΝΙΚΟΥ -->
+    <div id="tech-tab-stats" class="sec">
+      <div class="sgrid" id="tech-stats-grid"></div>
+      <div class="stitle">Τελευταίες 7 ημέρες</div>
+      <div id="tech-week-bars"></div>
+      <div class="sep"></div>
+      <div class="stitle">Ανά κατηγορία</div>
+      <div id="tech-cat-bars"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADMIN SCREEN ===== -->
+<div id="screen-admin" class="screen">
+  <div class="app-wrap" style="max-width:100%;background:var(--bg3)">
+    <!-- Admin header -->
+    <div class="app-hdr" style="background:var(--txt);color:var(--bg);max-width:100%">
+      <div class="app-hdr-left">
+        <h1 style="color:var(--bg)"><i class="ti ti-shield"></i> Admin Panel</h1>
+        <p style="color:rgba(255,255,255,.6)" id="admin-hdr-date"></p>
+      </div>
+      <button class="logout-btn" style="background:rgba(255,255,255,.15);color:var(--bg)" onclick="logout()"><i class="ti ti-logout"></i> Έξοδος</button>
+    </div>
+    <nav class="nav">
+      <button class="nb act" onclick="showAdminTab('overview')"><i class="ti ti-layout-dashboard"></i>Επισκόπηση</button>
+      <button class="nb" onclick="showAdminTab('entries')"><i class="ti ti-list"></i>Εγγραφές</button>
+      <button class="nb" onclick="showAdminTab('technicians')"><i class="ti ti-users"></i>Τεχνικοί</button>
+      <button class="nb" onclick="showAdminTab('settings')"><i class="ti ti-settings"></i>Ρυθμίσεις</button>
+    </nav>
+
+    <!-- ΕΠΙΣΚΟΠΗΣΗ -->
+    <div id="admin-tab-overview" class="sec act" style="background:var(--bg3)">
+      <div class="sgrid" id="admin-cards"></div>
+      <div class="filters">
+        <div class="fg"><label>Τεχνικός</label><select id="f-tech" onchange="applyAdminFilter()"><option value="">Όλοι</option></select></div>
+        <div class="fg"><label>Από</label><input type="date" id="f-from" onchange="applyAdminFilter()"></div>
+        <div class="fg"><label>Έως</label><input type="date" id="f-to" onchange="applyAdminFilter()"></div>
+        <div class="fg" style="display:flex;align-items:flex-end"><button class="btn-o" style="margin:0;padding:8px 14px" onclick="clearAdminFilter()">✕ Καθαρισμός</button></div>
+      </div>
+      <div class="stitle">Ώρες ανά τεχνικό</div>
+      <div id="admin-tech-bars" style="margin-bottom:16px"></div>
+      <div class="stitle">Τελευταίες 7 ημέρες</div>
+      <div id="admin-week-bars"></div>
+      <div class="sep"></div>
+      <button class="btn-o" onclick="adminExportExcel()"><i class="ti ti-file-spreadsheet"></i> Εξαγωγή Excel (όλα τα δεδομένα)</button>
+    </div>
+
+    <!-- ΕΓΓΡΑΦΕΣ -->
+    <div id="admin-tab-entries" class="sec" style="background:var(--bg3)">
+      <div class="tbl-wrap">
+        <div class="tbl-hdr">
+          <span class="tbl-title" id="entries-count">Εγγραφές</span>
+          <button onclick="loadAdminData()" style="background:none;border:none;cursor:pointer;color:var(--txt2);font-size:13px"><i class="ti ti-refresh"></i></button>
+        </div>
+        <div class="tbl-scroll">
+          <div id="admin-table"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ΤΕΧΝΙΚΟΙ -->
+    <div id="admin-tab-technicians" class="sec" style="background:var(--bg3)">
+      <button class="btn-p" style="margin-bottom:16px" onclick="openNewTech()"><i class="ti ti-user-plus"></i> Νέος τεχνικός</button>
+      <div id="tech-cards-container"></div>
+    </div>
+
+    <!-- ΡΥΘΜΙΣΕΙΣ ADMIN -->
+    <div id="admin-tab-settings" class="sec" style="background:var(--bg3)">
+      <div style="background:var(--bg);border-radius:var(--rl);padding:16px;margin-bottom:14px">
+        <div class="cfg-title"><i class="ti ti-database"></i> Σύνδεση Supabase</div>
+        <div class="info-box">Settings → API Keys → Legacy anon → eyJ... key</div>
+        <div class="fl"><label>Project URL</label><input type="url" id="a-url" placeholder="https://xxxx.supabase.co" oninput="saveAdminCfg()"></div>
+        <div class="fl"><label>Anon Key</label><input type="text" id="a-key" placeholder="eyJhbGci..." oninput="saveAdminCfg()"></div>
+        <div class="fl"><label>Πίνακας εγγραφών</label><input type="text" id="a-table" placeholder="work_logs" oninput="saveAdminCfg()"></div>
+        <div class="fl"><label>Πίνακας τεχνικών</label><input type="text" id="a-tech-table" placeholder="technicians" oninput="saveAdminCfg()"></div>
+        <button class="btn-o" onclick="testAdminConn()"><i class="ti ti-plug"></i> Δοκιμή σύνδεσης</button>
+        <button class="btn-p" onclick="loadAdminData()"><i class="ti ti-download"></i> Φόρτωση δεδομένων</button>
+        <div class="toast" id="cfg-toast"></div>
+      </div>
+      <div style="background:var(--bg);border-radius:var(--rl);padding:16px">
+        <div class="cfg-title"><i class="ti ti-lock"></i> Κωδικός διαχειριστή</div>
+        <div class="fl"><label>Νέος κωδικός</label><input type="password" id="new-admin-pw" placeholder="Νέος κωδικός..."></div>
+        <div class="fl"><label>Επιβεβαίωση</label><input type="password" id="new-admin-pw2" placeholder="Επανάληψη..."></div>
+        <button class="btn-o" onclick="changeAdminPw()"><i class="ti ti-key"></i> Αλλαγή κωδικού</button>
+        <div class="toast" id="pw-toast"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL (tech) -->
+<div class="modal-ov" id="edit-modal" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal">
+    <div class="modal-title"><span><i class="ti ti-edit"></i> Επεξεργασία</span>
+      <button class="modal-close" onclick="closeEditModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="fl"><label>Ημερομηνία</label><input type="date" id="m-date"></div>
+    <div class="fl"><label>Περιγραφή</label><textarea id="m-task" style="min-height:72px"></textarea></div>
+    <div class="fl"><label>Κατηγορία</label>
+      <select id="m-cat">
+        <option>🔧 Εγκατάσταση</option><option>🔩 Συντήρηση</option><option>🛠️ Επισκευή</option>
+        <option>🔍 Έλεγχος</option><option>🚗 Μεταφορά</option><option>📋 Άλλο</option>
+      </select>
+    </div>
+    <div class="g2" style="margin-bottom:13px">
+      <div class="fl" style="margin:0"><label>Ώρες</label><input type="number" id="m-h" min="0" max="24" inputmode="numeric"></div>
+      <div class="fl" style="margin:0"><label>Λεπτά</label><input type="number" id="m-m" min="0" max="59" inputmode="numeric"></div>
+    </div>
+    <div class="fl"><label>Τοποθεσία</label><input type="text" id="m-loc"></div>
+    <button class="btn-p" onclick="saveEdit()"><i class="ti ti-check"></i> Αποθήκευση αλλαγών</button>
+    <button class="btn-s" onclick="closeEditModal()">Ακύρωση</button>
+  </div>
+</div>
+
+<!-- NEW TECH MODAL -->
+<div class="modal-ov" id="new-tech-modal" onclick="if(event.target===this)closeNewTech()">
+  <div class="modal">
+    <div class="modal-title"><span><i class="ti ti-user-plus"></i> Νέος τεχνικός</span>
+      <button class="modal-close" onclick="closeNewTech()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="fl"><label>Ονοματεπώνυμο</label><input type="text" id="nt-name" placeholder="π.χ. Νίκος Παπαδόπουλος"></div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--txt2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Αυτόματος κωδικός πρόσβασης</div>
+      <div class="code-display" id="nt-code-display">—</div>
+      <button class="btn-s" onclick="genCode()" style="margin-top:8px"><i class="ti ti-refresh"></i> Νέος κωδικός</button>
+    </div>
+    <button class="btn-p" onclick="createTech()"><i class="ti ti-check"></i> Δημιουργία τεχνικού</button>
+    <div class="toast" id="nt-toast"></div>
+  </div>
+</div>
+
+<!-- ADMIN EDIT MODAL -->
+<div class="modal-ov" id="admin-edit-modal" onclick="if(event.target===this)closeAdminEdit()">
+  <div class="modal">
+    <div class="modal-title"><span><i class="ti ti-edit"></i> Επεξεργασία (Admin)</span>
+      <button class="modal-close" onclick="closeAdminEdit()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="fl"><label>Ημερομηνία</label><input type="date" id="ae-date"></div>
+    <div class="fl"><label>Τεχνικός</label><input type="text" id="ae-tech"></div>
+    <div class="fl"><label>Περιγραφή</label><input type="text" id="ae-task" style="padding:11px 13px;border:.5px solid var(--brd2);border-radius:var(--r);font-size:15px;background:var(--bg);color:var(--txt);font-family:inherit;outline:none;width:100%"></div>
+    <div class="fl"><label>Κατηγορία</label>
+      <select id="ae-cat">
+        <option>🔧 Εγκατάσταση</option><option>🔩 Συντήρηση</option><option>🛠️ Επισκευή</option>
+        <option>🔍 Έλεγχος</option><option>🚗 Μεταφορά</option><option>📋 Άλλο</option>
+      </select>
+    </div>
+    <div class="fl"><label>Ώρες (δεκαδ.)</label><input type="number" id="ae-hours" step="0.25" min="0"></div>
+    <div class="fl"><label>Τοποθεσία</label><input type="text" id="ae-loc"></div>
+    <button class="btn-p" onclick="saveAdminEdit()"><i class="ti ti-check"></i> Αποθήκευση</button>
+    <button class="btn-s" onclick="closeAdminEdit()">Ακύρωση</button>
+    <div class="toast" id="ae-toast"></div>
+  </div>
+</div>
+
+<script>
+// ===== CONFIG & STATE =====
+const LS='twl_v4',CS='app_cfg_v4';
+let SESSION=null; // {type:'tech'|'admin', tech:{id,name,code}}
+let adminData=[];
+let adminFiltered=[];
+let editingLocalId=null;
+let editingAdminId=null;
+let pendingCode='';
+
+function cfg(){try{return JSON.parse(localStorage.getItem(CS)||'{}')}catch{return{}}}
+function saveCfg(o){localStorage.setItem(CS,JSON.stringify(o))}
+function saveAdminCfg(){
+  const o=cfg();
+  o.url=gv('a-url');o.key=gv('a-key');o.table=gv('a-table')||'work_logs';o.techTable=gv('a-tech-table')||'technicians';
+  saveCfg(o);
+}
+function loadCfgUI(){
+  const o=cfg();
+  sv('a-url',o.url||'');sv('a-key',o.key||'');sv('a-table',o.table||'work_logs');sv('a-tech-table',o.techTable||'technicians');
+}
+function gv(id){const el=document.getElementById(id);return el?el.value:''}
+function sv(id,val){const el=document.getElementById(id);if(el)el.value=val}
+function initials(n){const p=(n||'').trim().split(' ').filter(Boolean);return p.length===0?'?':p.length===1?p[0][0].toUpperCase():(p[0][0]+p[p.length-1][0]).toUpperCase()}
+function fmtT(m){const h=Math.floor((m||0)/60),mm=(m||0)%60;return h&&mm?h+'ώ '+mm+'λ.':h?h+'ώ.':mm+'λ.'}
+function fmtDate(d){if(!d)return'—';try{return new Date(d+'T00:00:00').toLocaleDateString('el-GR',{weekday:'short',day:'numeric',month:'short'})}catch{return d}}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function genRandCode(){
+  const ch='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let c='';for(let i=0;i<6;i++)c+=ch[Math.floor(Math.random()*ch.length)];
+  return c;
+}
+function toast(id,msg,type,dur=3000){
+  const el=document.getElementById(id);if(!el)return;
+  el.textContent=msg;el.className='toast '+type;el.style.display='block';
+  clearTimeout(el._t);el._t=setTimeout(()=>el.style.display='none',dur);
+}
+
+// ===== LOCAL STORAGE =====
+function loadLocal(){try{return JSON.parse(localStorage.getItem(LS)||'[]')}catch{return[]}}
+function saveLocal(d){localStorage.setItem(LS,JSON.stringify(d))}
+function myEntries(){return loadLocal().filter(e=>SESSION&&e.techCode===SESSION.tech.code)}
+
+// ===== LOGIN =====
+let loginMode='tech';
+function setLoginMode(m){
+  loginMode=m;
+  document.querySelectorAll('.login-tab').forEach((b,i)=>b.classList.toggle('act',i===(m==='tech'?0:1)));
+  document.getElementById('login-lbl').textContent=m==='tech'?'Κωδικός τεχνικού':'Κωδικός διαχειριστή';
+  document.getElementById('login-code').placeholder=m==='tech'?'π.χ. AB1234':'Κωδικός...';
+  document.getElementById('login-code').type=m==='tech'?'text':'password';
+  document.getElementById('login-code').value='';
+  document.getElementById('login-err').style.display='none';
+}
+
+async function doLogin(){
+  const code=gv('login-code').trim();
+  if(!code){showLoginErr('Εισάγετε κωδικό.');return}
+  const o=cfg();
+  if(!o.url||!o.key){showLoginErr('Η εφαρμογή δεν έχει ρυθμιστεί ακόμα. Επικοινωνήστε με τον διαχειριστή.');return}
+
+  if(loginMode==='admin'){
+    const savedPw=o.adminPw||'admin123';
+    if(code===savedPw){
+      SESSION={type:'admin'};
+      showScreen('admin');
+      loadAdminData();
+      loadCfgUI();
+    }else showLoginErr('Λάθος κωδικός διαχειριστή.');
+    return;
+  }
+
+  // Tech login — ερώτηση Supabase
+  try{
+    const r=await fetch(o.url+'/rest/v1/'+(o.techTable||'technicians')+'?code=eq.'+encodeURIComponent(code)+'&active=eq.true',{
+      headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}
+    });
+    if(!r.ok){showLoginErr('Σφάλμα σύνδεσης. Δοκιμάστε ξανά.');return}
+    const res=await r.json();
+    if(!res.length){showLoginErr('Λάθος κωδικός τεχνικού.');return}
+    const tech=res[0];
+    SESSION={type:'tech',tech:{id:tech.id,name:tech.name,code:tech.code}};
+    showScreen('tech');
+    initTechScreen();
+  }catch(e){showLoginErr('Σφάλμα: '+e.message)}
+}
+
+function showLoginErr(msg){
+  const el=document.getElementById('login-err');
+  el.textContent=msg;el.style.display='block';
+}
+function logout(){
+  SESSION=null;
+  showScreen('login');
+  document.getElementById('login-code').value='';
+  document.getElementById('login-err').style.display='none';
+}
+function showScreen(s){
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('act'));
+  document.getElementById('screen-'+s).classList.add('act');
+}
+
+// ===== TECH SCREEN =====
+function initTechScreen(){
+  const t=SESSION.tech;
+  document.getElementById('tech-av').textContent=initials(t.name);
+  document.getElementById('tech-name-disp').textContent=t.name;
+  document.getElementById('tech-code-disp').textContent=t.code;
+  document.getElementById('tech-hdr-date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('e-date').value=new Date().toISOString().slice(0,10);
+  updateSyncStatus();
+  showTechTab('add');
+}
+function showTechTab(t){
+  document.querySelectorAll('#screen-tech .sec').forEach(s=>s.classList.remove('act'));
+  document.querySelectorAll('#screen-tech .nb').forEach(b=>b.classList.remove('act'));
+  document.getElementById('tech-tab-'+t).classList.add('act');
+  document.querySelectorAll('#screen-tech .nb')[{add:0,log:1,stats:2}[t]].classList.add('act');
+  if(t==='log')renderLog();
+  if(t==='stats')renderTechStats();
+}
+function updateSyncStatus(){
+  const o=cfg();const ok=o.url&&o.key;
+  const dot=document.getElementById('tech-sync-dot'),lbl=document.getElementById('tech-sync-lbl');
+  if(!ok){dot.className='sync-dot dot-off';lbl.textContent='Εκτός σύνδεσης';return}
+  const pend=myEntries().filter(e=>!e.synced).length;
+  if(pend>0){dot.className='sync-dot dot-pend';lbl.textContent=pend+' εκκρεμ.'}
+  else{dot.className='sync-dot dot-ok';lbl.textContent='Συγχρον.'}
+}
+
+// ===== SAVE ENTRY =====
+function toMins(h,m){return(parseInt(h)||0)*60+(parseInt(m)||0)}
+async function saveEntry(){
+  const task=gv('e-task').trim(),date=gv('e-date'),mins=toMins(gv('e-h'),gv('e-m'));
+  if(!task){toast('add-toast','⚠ Συμπλήρωσε την περιγραφή.','warn');return}
+  if(!date){toast('add-toast','⚠ Επίλεξε ημερομηνία.','warn');return}
+  if(!mins){toast('add-toast','⚠ Βάλε τη διάρκεια.','warn');return}
+  const entry={id:Date.now(),date,task,cat:gv('e-cat'),mins,loc:gv('e-loc').trim(),techName:SESSION.tech.name,techCode:SESSION.tech.code,synced:false,created_at:new Date().toISOString()};
+  const d=loadLocal();d.push(entry);saveLocal(d);
+  sv('e-task','');sv('e-h','');sv('e-m','');sv('e-loc','');
+  toast('add-toast','✓ Αποθηκεύτηκε!','ok');
+  updateSyncStatus();
+  await autoSync(entry);
+}
+
+async function autoSync(entry){
+  const o=cfg();if(!o.url||!o.key)return;
+  try{
+    const r=await fetch(o.url+'/rest/v1/'+(o.table||'work_logs'),{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key,'Prefer':'return=representation'},
+      body:JSON.stringify({date:entry.date,task:entry.task,category:entry.cat,duration_mins:entry.mins,location:entry.loc,technician:entry.techName,technician_code:entry.techCode,created_at:entry.created_at})
+    });
+    if(r.ok){
+      const res=await r.json();const d=loadLocal();
+      const i=d.findIndex(e=>e.id===entry.id);
+      if(i>=0){d[i].synced=true;d[i].supabase_id=res[0]?.id;saveLocal(d)}
+      updateSyncStatus();
+    }
+  }catch(e){}
+}
+
+async function syncPending(){
+  const o=cfg();
+  if(!o.url||!o.key){toast('log-toast','⚠ Δεν υπάρχει σύνδεση Supabase.','warn');return}
+  const d=loadLocal();const pending=d.filter(e=>e.techCode===SESSION.tech.code&&!e.synced);
+  if(!pending.length){toast('log-toast','Δεν υπάρχουν εκκρεμείς εγγραφές.','info');return}
+  toast('log-toast','⏳ Αποστολή '+pending.length+'...','info',8000);
+  let ok=0,fail=0;
+  for(const entry of pending){
+    try{
+      const r=await fetch(o.url+'/rest/v1/'+(o.table||'work_logs'),{
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key,'Prefer':'return=representation'},
+        body:JSON.stringify({date:entry.date,task:entry.task,category:entry.cat,duration_mins:entry.mins,location:entry.loc,technician:entry.techName,technician_code:entry.techCode,created_at:entry.created_at})
+      });
+      if(r.ok){const res=await r.json();const i=d.findIndex(e=>e.id===entry.id);if(i>=0){d[i].synced=true;d[i].supabase_id=res[0]?.id}ok++;}else fail++;
+    }catch{fail++}
+  }
+  saveLocal(d);updateSyncStatus();renderLog();
+  toast('log-toast',fail===0?'✓ '+ok+' εγγραφές στάλθηκαν!':'✓ '+ok+' OK  ✗ '+fail+' απέτυχαν',fail===0?'ok':'err');
+}
+
+// ===== RENDER LOG =====
+function renderLog(){
+  const d=myEntries();const c=document.getElementById('log-container');
+  if(!d.length){c.innerHTML='<div class="empty"><i class="ti ti-clipboard-list"></i>Καμία εγγραφή ακόμα.</div>';return}
+  const gr={};
+  d.sort((a,b)=>b.date.localeCompare(a.date)).forEach(e=>{if(!gr[e.date])gr[e.date]=[];gr[e.date].push(e)});
+  let h='';
+  Object.entries(gr).forEach(([date,entries])=>{
+    const tot=entries.reduce((s,e)=>s+e.mins,0);
+    const ds=new Date(date+'T00:00:00').toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});
+    h+=`<div class="dg"><div class="dh"><span>${ds}</span><span class="dt"><i class="ti ti-clock" style="font-size:11px"></i> ${fmtT(tot)}</span></div>`;
+    entries.forEach(e=>{
+      const sd=e.synced?'<span class="sync-dot dot-ok" style="display:inline-block;vertical-align:middle"></span> Συγχρον.':'<span class="sync-dot dot-pend" style="display:inline-block;vertical-align:middle"></span> Εκκρεμεί';
+      h+=`<div class="ec">
+        <div class="et">${esc(e.task)}</div>
+        <div class="em">
+          <span><i class="ti ti-clock" style="font-size:13px"></i> ${fmtT(e.mins)}</span>
+          <span class="bdg">${esc(e.cat)}</span>
+          ${e.loc?`<span><i class="ti ti-map-pin" style="font-size:12px"></i> ${esc(e.loc)}</span>`:''}
+          <span style="margin-left:auto;font-size:11px">${sd}</span>
+        </div>
+        <div class="entry-btns">
+          <button class="edit-btn" onclick="openEditLocal(${e.id})"><i class="ti ti-edit"></i> Επεξεργασία</button>
+          <button class="del-btn" onclick="delLocal(${e.id})"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>`;
+    });
+    h+='</div>';
+  });
+  c.innerHTML=h;
+}
+
+// ===== LOCAL EDIT =====
+function openEditLocal(id){
+  const d=loadLocal();const e=d.find(x=>x.id===id);if(!e)return;
+  editingLocalId=id;
+  sv('m-date',e.date);sv('m-task',e.task);sv('m-loc',e.loc||'');
+  sv('m-h',Math.floor(e.mins/60));sv('m-m',e.mins%60);
+  document.getElementById('m-cat').value=e.cat;
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeEditModal(){document.getElementById('edit-modal').classList.remove('open');editingLocalId=null}
+async function saveEdit(){
+  if(!editingLocalId)return;
+  const task=gv('m-task').trim(),date=gv('m-date'),mins=toMins(gv('m-h'),gv('m-m'));
+  if(!task||!date||!mins)return;
+  const d=loadLocal();const i=d.findIndex(x=>x.id===editingLocalId);
+  if(i<0)return;
+  const old=d[i];
+  d[i]={...old,date,task,cat:gv('m-cat'),mins,loc:gv('m-loc').trim(),synced:false};
+  saveLocal(d);
+  closeEditModal();renderLog();updateSyncStatus();
+  // Update in Supabase if synced
+  if(old.supabase_id){
+    const o=cfg();
+    try{await fetch(o.url+'/rest/v1/'+(o.table||'work_logs')+'?id=eq.'+old.supabase_id,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key,'Prefer':'return=minimal'},
+      body:JSON.stringify({date,task,category:gv('m-cat'),duration_mins:mins,location:gv('m-loc').trim()})
+    });
+    const dd=loadLocal();const ii=dd.findIndex(x=>x.id===editingLocalId);
+    if(ii>=0){dd[ii].synced=true;saveLocal(dd)}updateSyncStatus();}catch(e){}
+  }
+}
+function delLocal(id){
+  if(!confirm('Διαγραφή αυτής της εγγραφής;'))return;
+  saveLocal(loadLocal().filter(e=>e.id!==id));
+  renderLog();updateSyncStatus();
+}
+
+// ===== TECH STATS =====
+function renderTechStats(){
+  const d=myEntries();
+  const tot=d.reduce((s,e)=>s+e.mins,0);
+  const days=[...new Set(d.map(e=>e.date))].length;
+  document.getElementById('tech-stats-grid').innerHTML=`
+    <div class="sc"><div class="sl">Σύνολο ωρών</div><div class="sv">${Math.floor(tot/60)}<span style="font-size:14px">ώ ${tot%60}λ.</span></div></div>
+    <div class="sc"><div class="sl">Εγγραφές</div><div class="sv">${d.length}</div></div>
+    <div class="sc"><div class="sl">Ημέρες</div><div class="sv">${days}</div></div>
+    <div class="sc"><div class="sl">Μέσος/ημέρα</div><div class="sv">${days?fmtT(Math.round(tot/days)):'—'}</div></div>`;
+  const last7=[];
+  for(let i=6;i>=0;i--){const dd=new Date();dd.setDate(dd.getDate()-i);const k=dd.toISOString().slice(0,10);last7.push({lbl:dd.toLocaleDateString('el-GR',{weekday:'short'}),mins:d.filter(e=>e.date===k).reduce((s,e)=>s+e.mins,0)})}
+  const mx=Math.max(...last7.map(x=>x.mins),1);
+  document.getElementById('tech-week-bars').innerHTML=last7.map(x=>`<div class="bar-row"><div class="bl">${x.lbl}</div><div class="bt"><div class="bf" style="width:${Math.round(x.mins/mx*100)}%"></div></div><div class="bv">${x.mins?fmtT(x.mins):'–'}</div></div>`).join('');
+  const cats={};d.forEach(e=>{cats[e.cat]=(cats[e.cat]||0)+e.mins});
+  const mxc=Math.max(...Object.values(cats),1);
+  document.getElementById('tech-cat-bars').innerHTML=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,m])=>`<div class="bar-row"><div class="bl" style="width:80px;text-align:left;font-size:11px;white-space:nowrap">${c}</div><div class="bt"><div class="bf" style="width:${Math.round(m/mxc*100)}%"></div></div><div class="bv">${fmtT(m)}</div></div>`).join('')||'<div style="font-size:13px;color:var(--txt2)">Δεν υπάρχουν δεδομένα.</div>';
+}
+
+function techExportExcel(){
+  const d=myEntries();
+  if(!d.length){toast('log-toast','⚠ Δεν υπάρχουν εγγραφές.','warn');return}
+  const rows=d.sort((a,b)=>a.date.localeCompare(b.date)).map(e=>({'Ημερομηνία':e.date,'Τεχνικός':e.techName||'','Εργασία':e.task,'Κατηγορία':e.cat,'Ώρες':Math.floor(e.mins/60),'Λεπτά':e.mins%60,'Σύνολο ώρες':parseFloat((e.mins/60).toFixed(2)),'Τοποθεσία':e.loc||''}));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Εργασίες μου');
+  XLSX.writeFile(wb,'εργασιες_'+SESSION.tech.name.replace(/\s/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('log-toast','✓ Excel κατέβηκε!','ok');
+}
+
+// ===== ADMIN =====
+function showAdminTab(t){
+  document.querySelectorAll('#screen-admin .sec').forEach(s=>s.classList.remove('act'));
+  document.querySelectorAll('#screen-admin .nb').forEach(b=>b.classList.remove('act'));
+  document.getElementById('admin-tab-'+t).classList.add('act');
+  document.querySelectorAll('#screen-admin .nb')[{overview:0,entries:1,technicians:2,settings:3}[t]].classList.add('act');
+}
+
+async function loadAdminData(){
+  const o=cfg();
+  if(!o.url||!o.key){showAdminTab('settings');toast('cfg-toast','⚠ Ρύθμισε πρώτα το Supabase.','warn');return}
+  try{
+    const r=await fetch(o.url+'/rest/v1/'+(o.table||'work_logs')+'?order=date.desc&limit=2000',{
+      headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}
+    });
+    if(!r.ok)throw new Error(r.status);
+    adminData=await r.json();
+    adminFiltered=[];
+    renderAdminOverview(adminData);
+    renderAdminTable(adminData);
+    await loadTechnicianCards();
+    populateTechFilter();
+  }catch(e){toast('cfg-toast','✗ Σφάλμα φόρτωσης: '+e.message,'err',5000)}
+}
+
+function getAdminDisplay(){return adminFiltered.length?adminFiltered:adminData}
+
+function renderAdminOverview(data){
+  const tot=data.reduce((s,e)=>s+(e.duration_mins||0),0);
+  const techs=[...new Set(data.map(e=>e.technician).filter(Boolean))].length;
+  const days=[...new Set(data.map(e=>e.date))].length;
+  document.getElementById('admin-cards').innerHTML=`
+    <div class="sc"><div class="sl">Σύνολο ωρών</div><div class="sv">${Math.floor(tot/60)}<span style="font-size:13px">ώ ${tot%60}λ.</span></div></div>
+    <div class="sc"><div class="sl">Εγγραφές</div><div class="sv">${data.length}</div></div>
+    <div class="sc"><div class="sl">Τεχνικοί</div><div class="sv">${techs}</div></div>
+    <div class="sc"><div class="sl">Ημέρες</div><div class="sv">${days}</div></div>`;
+  // Tech bars
+  const byT={};data.forEach(e=>{const k=e.technician||'Άγνωστος';if(!byT[k])byT[k]=0;byT[k]+=(e.duration_mins||0)});
+  const mxT=Math.max(...Object.values(byT),1);
+  document.getElementById('admin-tech-bars').innerHTML=Object.entries(byT).sort((a,b)=>b[1]-a[1]).map(([n,m])=>`<div class="bar-row"><div class="bl" style="width:80px;text-align:left;font-size:11px;white-space:nowrap;overflow:hidden">${esc(n)}</div><div class="bt"><div class="bf" style="width:${Math.round(m/mxT*100)}%"></div></div><div class="bv">${fmtT(m)}</div></div>`).join('')||'<div style="font-size:13px;color:var(--txt2)">Δεν υπάρχουν δεδομένα.</div>';
+  // Week bars
+  const last7=[];
+  for(let i=6;i>=0;i--){const dd=new Date();dd.setDate(dd.getDate()-i);const k=dd.toISOString().slice(0,10);last7.push({lbl:dd.toLocaleDateString('el-GR',{weekday:'short'}),mins:data.filter(e=>e.date===k).reduce((s,e)=>s+(e.duration_mins||0),0)})}
+  const mx=Math.max(...last7.map(x=>x.mins),1);
+  document.getElementById('admin-week-bars').innerHTML=last7.map(x=>`<div class="bar-row"><div class="bl">${x.lbl}</div><div class="bt"><div class="bf" style="width:${Math.round(x.mins/mx*100)}%"></div></div><div class="bv">${x.mins?fmtT(x.mins):'–'}</div></div>`).join('');
+}
+
+function renderAdminTable(data){
+  document.getElementById('entries-count').textContent='Εγγραφές ('+data.length+')';
+  if(!data.length){document.getElementById('admin-table').innerHTML='<div class="empty"><i class="ti ti-clipboard-list"></i>Δεν βρέθηκαν εγγραφές.</div>';return}
+  let h=`<table><thead><tr><th>Ημερομηνία</th><th>Τεχνικός</th><th>Εργασία</th><th>Κατ.</th><th>Διάρκεια</th><th>Τοποθεσία</th><th>Ενέργειες</th></tr></thead><tbody>`;
+  data.forEach(e=>{
+    h+=`<tr>
+      <td style="white-space:nowrap;color:var(--txt2)">${fmtDate(e.date)}</td>
+      <td><strong>${esc(e.technician||'—')}</strong></td>
+      <td style="max-width:180px;font-size:12px">${esc(e.task||'')}</td>
+      <td><span class="tbl-badge">${esc((e.category||'').replace(/./u,''))}</span></td>
+      <td style="white-space:nowrap;color:var(--txt2)">${fmtT(e.duration_mins||0)}</td>
+      <td style="color:var(--txt2);font-size:12px">${esc(e.location||'—')}</td>
+      <td><div class="act-btns">
+        <button class="act-btn act-edit" onclick='openAdminEdit(${JSON.stringify(e)})'><i class="ti ti-edit"></i></button>
+        <button class="act-btn act-del" onclick="delAdminEntry(${e.id})"><i class="ti ti-trash"></i></button>
+      </div></td>
+    </tr>`;
+  });
+  h+='</tbody></table>';
+  document.getElementById('admin-table').innerHTML=h;
+}
+
+function populateTechFilter(){
+  const techs=[...new Set(adminData.map(e=>e.technician).filter(Boolean))].sort();
+  document.getElementById('f-tech').innerHTML='<option value="">Όλοι</option>'+techs.map(t=>`<option>${esc(t)}</option>`).join('');
+}
+
+function applyAdminFilter(){
+  const tech=gv('f-tech'),from=gv('f-from'),to=gv('f-to');
+  adminFiltered=adminData.filter(e=>{
+    if(tech&&e.technician!==tech)return false;
+    if(from&&e.date<from)return false;
+    if(to&&e.date>to)return false;
+    return true;
+  });
+  renderAdminOverview(adminFiltered);
+  renderAdminTable(adminFiltered);
+}
+function clearAdminFilter(){
+  sv('f-tech','');sv('f-from','');sv('f-to','');
+  adminFiltered=[];renderAdminOverview(adminData);renderAdminTable(adminData);
+}
+
+// ===== ADMIN EDIT =====
+function openAdminEdit(e){
+  editingAdminId=e.id;
+  sv('ae-date',e.date||'');sv('ae-tech',e.technician||'');sv('ae-task',e.task||'');sv('ae-loc',e.location||'');
+  sv('ae-hours',((e.duration_mins||0)/60).toFixed(2));
+  document.getElementById('ae-cat').value=e.category||'📋 Άλλο';
+  document.getElementById('admin-edit-modal').classList.add('open');
+}
+function closeAdminEdit(){document.getElementById('admin-edit-modal').classList.remove('open');editingAdminId=null}
+
+async function saveAdminEdit(){
+  if(!editingAdminId)return;
+  const o=cfg();
+  const mins=Math.round(parseFloat(gv('ae-hours'))*60)||0;
+  const payload={date:gv('ae-date'),technician:gv('ae-tech'),task:gv('ae-task'),category:document.getElementById('ae-cat').value,duration_mins:mins,location:gv('ae-loc')};
+  try{
+    const r=await fetch(o.url+'/rest/v1/'+(o.table||'work_logs')+'?id=eq.'+editingAdminId,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key,'Prefer':'return=minimal'},
+      body:JSON.stringify(payload)
+    });
+    if(r.ok){
+      const i=adminData.findIndex(e=>e.id===editingAdminId);if(i>=0)adminData[i]={...adminData[i],...payload};
+      closeAdminEdit();
+      const disp=getAdminDisplay();
+      renderAdminOverview(disp);renderAdminTable(disp);
+      toast('ae-toast','✓ Αποθηκεύτηκε!','ok');
+    }else{const t=await r.text();toast('ae-toast','✗ '+t.slice(0,60),'err',4000)}
+  }catch(e){toast('ae-toast','✗ '+e.message,'err',4000)}
+}
+
+async function delAdminEntry(id){
+  if(!confirm('Οριστική διαγραφή αυτής της εγγραφής;'))return;
+  const o=cfg();
+  try{
+    const r=await fetch(o.url+'/rest/v1/'+(o.table||'work_logs')+'?id=eq.'+id,{
+      method:'DELETE',headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}
+    });
+    if(r.ok){
+      adminData=adminData.filter(e=>e.id!==id);adminFiltered=adminFiltered.filter(e=>e.id!==id);
+      const disp=getAdminDisplay();renderAdminOverview(disp);renderAdminTable(disp);
+    }
+  }catch(e){}
+}
+
+// ===== TECHNICIANS =====
+async function loadTechnicianCards(){
+  const o=cfg();
+  try{
+    const r=await fetch(o.url+'/rest/v1/'+(o.techTable||'technicians')+'?order=created_at.asc',{
+      headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}
+    });
+    if(!r.ok)return;
+    const techs=await r.json();
+    renderTechCards(techs);
+  }catch(e){}
+}
+
+function renderTechCards(techs){
+  const el=document.getElementById('tech-cards-container');
+  if(!techs.length){el.innerHTML='<div class="empty"><i class="ti ti-users"></i>Δεν υπάρχουν τεχνικοί ακόμα.</div>';return}
+  el.innerHTML='<div class="tech-cards">'+techs.map(t=>{
+    const myData=adminData.filter(e=>e.technician_code===t.code);
+    const tot=myData.reduce((s,e)=>s+(e.duration_mins||0),0);
+    return`<div class="tech-card">
+      <div class="tech-card-top">
+        <div class="tech-av-lg">${initials(t.name)}</div>
+        <div style="flex:1">
+          <div class="tech-name">${esc(t.name)}</div>
+          <div class="tech-code">Κωδικός: ${t.code}</div>
+        </div>
+        <button class="toggle-btn" onclick="toggleTech(${t.id},'${!t.active}')">${t.active?'Απενεργ.':'Ενεργοπ.'}</button>
+      </div>
+      <div class="tech-stats-row">
+        <div class="tech-stat"><span class="tech-stat-val">${fmtT(tot)}</span><span class="tech-stat-lbl">Ώρες</span></div>
+        <div class="tech-stat"><span class="tech-stat-val">${myData.length}</span><span class="tech-stat-lbl">Εγγραφές</span></div>
+        <div class="tech-stat"><span class="tech-stat-val">${t.active?'Ενεργός':'Ανενεργός'}</span><span class="tech-stat-lbl">Κατάσταση</span></div>
+      </div>
+      <div class="code-display">${t.code}</div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+function openNewTech(){
+  sv('nt-name','');genCode();
+  document.getElementById('new-tech-modal').classList.add('open');
+}
+function closeNewTech(){document.getElementById('new-tech-modal').classList.remove('open')}
+function genCode(){
+  pendingCode=genRandCode();
+  document.getElementById('nt-code-display').textContent=pendingCode;
+}
+
+async function createTech(){
+  const name=gv('nt-name').trim();
+  if(!name){toast('nt-toast','⚠ Βάλε το ονοματεπώνυμο.','warn');return}
+  if(!pendingCode)genCode();
+  const o=cfg();
+  try{
+    const r=await fetch(o.url+'/rest/v1/'+(o.techTable||'technicians'),{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key,'Prefer':'return=minimal'},
+      body:JSON.stringify({name,code:pendingCode,active:true})
+    });
+    if(r.ok){
+      toast('nt-toast','✓ Ο τεχνικός δημιουργήθηκε! Κωδικός: '+pendingCode,'ok',5000);
+      setTimeout(()=>{closeNewTech();loadTechnicianCards();},2000);
+    }else{const t=await r.text();toast('nt-toast','✗ '+t.slice(0,80),'err',5000)}
+  }catch(e){toast('nt-toast','✗ '+e.message,'err',5000)}
+}
+
+async function toggleTech(id,active){
+  const o=cfg();
+  try{
+    await fetch(o.url+'/rest/v1/'+(o.techTable||'technicians')+'?id=eq.'+id,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key},
+      body:JSON.stringify({active:active==='true'})
+    });
+    loadTechnicianCards();
+  }catch(e){}
+}
+
+async function testAdminConn(){
+  const o=cfg();
+  if(!o.url||!o.key){toast('cfg-toast','⚠ Συμπλήρωσε URL και Key.','warn');return}
+  toast('cfg-toast','⏳ Δοκιμή...','info',6000);
+  try{
+    const r=await fetch(o.url+'/rest/v1/'+(o.table||'work_logs')+'?limit=1',{
+      headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}
+    });
+    if(r.ok)toast('cfg-toast','✓ Σύνδεση επιτυχής!','ok',4000);
+    else toast('cfg-toast','✗ Σφάλμα '+r.status,'err',5000);
+  }catch(e){toast('cfg-toast','✗ '+e.message,'err',5000)}
+}
+
+function changeAdminPw(){
+  const p1=gv('new-admin-pw'),p2=gv('new-admin-pw2');
+  if(!p1){toast('pw-toast','⚠ Βάλε νέο κωδικό.','warn');return}
+  if(p1!==p2){toast('pw-toast','⚠ Οι κωδικοί δεν ταιριάζουν.','warn');return}
+  if(p1.length<4){toast('pw-toast','⚠ Τουλάχιστον 4 χαρακτήρες.','warn');return}
+  const o=cfg();o.adminPw=p1;saveCfg(o);
+  sv('new-admin-pw','');sv('new-admin-pw2','');
+  toast('pw-toast','✓ Ο κωδικός άλλαξε!','ok');
+}
+
+function adminExportExcel(){
+  const data=getAdminDisplay();
+  if(!data.length){return}
+  const rows=data.map(e=>({'Ημερομηνία':e.date,'Τεχνικός':e.technician||'','Εργασία':e.task||'','Κατηγορία':e.category||'','Ώρες':Math.floor((e.duration_mins||0)/60),'Λεπτά':(e.duration_mins||0)%60,'Σύνολο ώρες':parseFloat(((e.duration_mins||0)/60).toFixed(2)),'Τοποθεσία':e.location||'','Ημ. εισαγωγής':e.created_at||''}));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Εγγραφές');
+  const byT={};data.forEach(e=>{const k=e.technician||'Άγνωστος';if(!byT[k])byT[k]=0;byT[k]+=(e.duration_mins||0)});
+  const ws2=XLSX.utils.json_to_sheet(Object.entries(byT).map(([t,m])=>({'Τεχνικός':t,'Σύνολο ώρες':parseFloat((m/60).toFixed(2)),'Εγγραφές':data.filter(e=>(e.technician||'Άγνωστος')===t).length})));
+  XLSX.utils.book_append_sheet(wb,ws2,'Σύνοψη τεχνικών');
+  XLSX.writeFile(wb,'admin_εργασιες_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// ===== INIT =====
+(function init(){
+  // Check if cfg exists — if not, show settings hint on login
+  const o=cfg();
+  document.getElementById('tech-hdr-date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('admin-hdr-date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  // If no supabase config show a note
+  if(!o.url||!o.key){
+    document.getElementById('login-err').textContent='⚠ Η εφαρμογή δεν έχει ρυθμιστεί. Επικοινωνήστε με τον διαχειριστή.';
+    document.getElementById('login-err').style.display='block';
+  }
+})();
+</script>
+</body>
+</html>
