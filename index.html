@@ -190,7 +190,10 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle}
         <h1><i class="ti ti-tool"></i> Εργασίες μου</h1>
         <p id="tech-hdr-date"></p>
       </div>
-      <button class="logout-btn" onclick="logout()"><i class="ti ti-logout"></i> Έξοδος</button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <span id="tech-hdr-name" style="font-size:13px;font-weight:600;color:var(--txt)"></span>
+        <button class="logout-btn" onclick="logout()"><i class="ti ti-logout"></i> Έξοδος</button>
+      </div>
     </div>
     <nav class="nav">
       <button class="nb act" onclick="showTechTab('add')"><i class="ti ti-plus"></i>Νέα</button>
@@ -215,6 +218,17 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle}
         <select id="e-cat">
           <option>🔧 Εγκατάσταση</option><option>🔩 Συντήρηση</option><option>🛠️ Επισκευή</option>
           <option>🔍 Έλεγχος</option><option>🚗 Μεταφορά</option><option>📋 Άλλο</option>
+        </select>
+      </div>
+      <div class="fl"><label>Είδος εργασίας</label>
+        <select id="e-type">
+          <option>❄️ Ψυκτικά</option>
+          <option>🚿 Υδραυλικά</option>
+          <option>🌊 Αποχέτευση</option>
+          <option>🔥 Πυρόσβεση</option>
+          <option>💨 CO2</option>
+          <option>♨️ Αντλία θερμότητας</option>
+          <option>📋 Άλλο</option>
         </select>
       </div>
       <div class="fl"><label>Διάρκεια</label>
@@ -395,6 +409,10 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle}
 <script>
 // ===== CONFIG & STATE =====
 const LS='twl_v4',CS='app_cfg_v4';
+// ===== PRESET — Admin: γεμίστε αυτά μια φορά και ανεβάστε =====
+const PRESET_URL = 'https://nizuttqemqcpjyewwddp.supabase.co'; // π.χ. 'https://xxxx.supabase.co'
+const PRESET_KEY = 'sb_publishable_svX2UeTzNJHfTJlVG4X-bg_mBkKHmnn'; // το anon key (eyJ...)
+// =============================================================
 let SESSION=null; // {type:'tech'|'admin', tech:{id,name,code}}
 let adminData=[];
 let adminFiltered=[];
@@ -402,7 +420,14 @@ let editingLocalId=null;
 let editingAdminId=null;
 let pendingCode='';
 
-function cfg(){try{return JSON.parse(localStorage.getItem(CS)||'{}')}catch{return{}}}
+function cfg(){
+  try{
+    const o=JSON.parse(localStorage.getItem(CS)||'{}');
+    if(!o.url&&PRESET_URL)o.url=PRESET_URL;
+    if(!o.key&&PRESET_KEY)o.key=PRESET_KEY;
+    return o;
+  }catch{return{url:PRESET_URL,key:PRESET_KEY}}
+}
 function saveCfg(o){localStorage.setItem(CS,JSON.stringify(o))}
 function saveAdminCfg(){
   const o=cfg();
@@ -499,15 +524,47 @@ function showScreen(s){
 }
 
 // ===== TECH SCREEN =====
-function initTechScreen(){
+async function initTechScreen(){
   const t=SESSION.tech;
   document.getElementById('tech-av').textContent=initials(t.name);
   document.getElementById('tech-name-disp').textContent=t.name;
   document.getElementById('tech-code-disp').textContent=t.code;
+  // Εμφάνιση ονόματος στο header
+  document.getElementById('tech-hdr-name').textContent=t.name;
   document.getElementById('tech-hdr-date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('e-date').value=new Date().toISOString().slice(0,10);
   updateSyncStatus();
   showTechTab('add');
+  // Φόρτωση εγγραφών από Supabase
+  await fetchTechEntriesFromSupabase();
+}
+
+async function fetchTechEntriesFromSupabase(){
+  const o=cfg();if(!o.url||!o.key||!SESSION)return;
+  try{
+    const r=await fetch(o.url+'/rest/v1/'+(o.table||'work_logs')+'?technician_code=eq.'+encodeURIComponent(SESSION.tech.code)+'&order=date.desc&limit=500',{
+      headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}
+    });
+    if(!r.ok)return;
+    const remote=await r.json();
+    // Merge remote into local (avoid duplicates by supabase_id)
+    const local=loadLocal();
+    const existingSupIds=new Set(local.map(e=>e.supabase_id).filter(Boolean));
+    let added=0;
+    remote.forEach(r=>{
+      if(!existingSupIds.has(r.id)){
+        local.push({
+          id:Date.now()+Math.random(),date:r.date,task:r.task,cat:r.category||'',
+          workType:r.work_type||'',mins:r.duration_mins||0,loc:r.location||'',
+          techName:r.technician||SESSION.tech.name,techCode:SESSION.tech.code,
+          synced:true,supabase_id:r.id,created_at:r.created_at
+        });
+        added++;
+      }
+    });
+    if(added>0){saveLocal(local);renderLog();}
+    updateSyncStatus();
+  }catch(e){}
 }
 function showTechTab(t){
   document.querySelectorAll('#screen-tech .sec').forEach(s=>s.classList.remove('act'));
@@ -533,7 +590,7 @@ async function saveEntry(){
   if(!task){toast('add-toast','⚠ Συμπλήρωσε την περιγραφή.','warn');return}
   if(!date){toast('add-toast','⚠ Επίλεξε ημερομηνία.','warn');return}
   if(!mins){toast('add-toast','⚠ Βάλε τη διάρκεια.','warn');return}
-  const entry={id:Date.now(),date,task,cat:gv('e-cat'),mins,loc:gv('e-loc').trim(),techName:SESSION.tech.name,techCode:SESSION.tech.code,synced:false,created_at:new Date().toISOString()};
+  const entry={id:Date.now(),date,task,cat:gv('e-cat'),workType:gv('e-type'),mins,loc:gv('e-loc').trim(),techName:SESSION.tech.name,techCode:SESSION.tech.code,synced:false,created_at:new Date().toISOString()};
   const d=loadLocal();d.push(entry);saveLocal(d);
   sv('e-task','');sv('e-h','');sv('e-m','');sv('e-loc','');
   toast('add-toast','✓ Αποθηκεύτηκε!','ok');
@@ -547,7 +604,7 @@ async function autoSync(entry){
     const r=await fetch(o.url+'/rest/v1/'+(o.table||'work_logs'),{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key,'Prefer':'return=representation'},
-      body:JSON.stringify({date:entry.date,task:entry.task,category:entry.cat,duration_mins:entry.mins,location:entry.loc,technician:entry.techName,technician_code:entry.techCode,created_at:entry.created_at})
+      body:JSON.stringify({date:entry.date,task:entry.task,category:entry.cat,work_type:entry.workType||'',duration_mins:entry.mins,location:entry.loc,technician:entry.techName,technician_code:entry.techCode,created_at:entry.created_at})
     });
     if(r.ok){
       const res=await r.json();const d=loadLocal();
@@ -570,7 +627,7 @@ async function syncPending(){
       const r=await fetch(o.url+'/rest/v1/'+(o.table||'work_logs'),{
         method:'POST',
         headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key,'Prefer':'return=representation'},
-        body:JSON.stringify({date:entry.date,task:entry.task,category:entry.cat,duration_mins:entry.mins,location:entry.loc,technician:entry.techName,technician_code:entry.techCode,created_at:entry.created_at})
+        body:JSON.stringify({date:entry.date,task:entry.task,category:entry.cat,work_type:entry.workType||'',duration_mins:entry.mins,location:entry.loc,technician:entry.techName,technician_code:entry.techCode,created_at:entry.created_at})
       });
       if(r.ok){const res=await r.json();const i=d.findIndex(e=>e.id===entry.id);if(i>=0){d[i].synced=true;d[i].supabase_id=res[0]?.id}ok++;}else fail++;
     }catch{fail++}
@@ -597,6 +654,7 @@ function renderLog(){
         <div class="em">
           <span><i class="ti ti-clock" style="font-size:13px"></i> ${fmtT(e.mins)}</span>
           <span class="bdg">${esc(e.cat)}</span>
+          ${e.workType?`<span class="bdg" style="background:var(--info-bg);color:var(--info)">${esc(e.workType)}</span>`:''}
           ${e.loc?`<span><i class="ti ti-map-pin" style="font-size:12px"></i> ${esc(e.loc)}</span>`:''}
           <span style="margin-left:auto;font-size:11px">${sd}</span>
         </div>
@@ -734,7 +792,7 @@ function renderAdminTable(data){
       <td style="white-space:nowrap;color:var(--txt2)">${fmtDate(e.date)}</td>
       <td><strong>${esc(e.technician||'—')}</strong></td>
       <td style="max-width:180px;font-size:12px">${esc(e.task||'')}</td>
-      <td><span class="tbl-badge">${esc((e.category||'').replace(/./u,''))}</span></td>
+      <td><span class="tbl-badge">${esc(e.category||'')}</span>${e.work_type?`<br><span class="tbl-badge" style="background:var(--info-bg);color:var(--info);margin-top:3px;display:inline-block">${esc(e.work_type)}</span>`:''}</td>
       <td style="white-space:nowrap;color:var(--txt2)">${fmtT(e.duration_mins||0)}</td>
       <td style="color:var(--txt2);font-size:12px">${esc(e.location||'—')}</td>
       <td><div class="act-btns">
