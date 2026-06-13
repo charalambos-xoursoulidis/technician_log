@@ -174,7 +174,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle}
       </div>
       <div class="login-field">
         <label id="login-lbl">Κωδικός τεχνικού</label>
-        <input type="text" id="login-code" placeholder="π.χ. AB1234" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')doLogin()">
+        <input type="text" id="login-code" placeholder="π.χ. AB1234" autocomplete="off" autocapitalize="characters" oninput="if(loginMode==='tech')this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <button class="login-btn" onclick="doLogin()">Σύνδεση <i class="ti ti-arrow-right"></i></button>
       <div class="login-err" id="login-err"></div>
