@@ -451,18 +451,22 @@ async function doLogin(){
   const code=gv('login-code').trim();
   if(!code){showLoginErr('Εισάγετε κωδικό.');return}
   const o=cfg();
-  if(!o.url||!o.key){showLoginErr('Η εφαρμογή δεν έχει ρυθμιστεί ακόμα. Επικοινωνήστε με τον διαχειριστή.');return}
 
   if(loginMode==='admin'){
+    // Admin login works always — Supabase configured later from Settings
     const savedPw=o.adminPw||'admin123';
     if(code===savedPw){
       SESSION={type:'admin'};
       showScreen('admin');
-      loadAdminData();
       loadCfgUI();
+      if(o.url&&o.key)loadAdminData();
+      else{showAdminTab('settings');toast('cfg-toast','⚠ Βάλε πρώτα τα στοιχεία Supabase εδώ.','warn',6000);}
     }else showLoginErr('Λάθος κωδικός διαχειριστή.');
     return;
   }
+
+  // Tech login needs Supabase
+  if(!o.url||!o.key){showLoginErr('Η εφαρμογή δεν έχει ρυθμιστεί. Επικοινωνήστε με τον διαχειριστή.');return}
 
   // Tech login — ερώτηση Supabase
   try{
@@ -924,15 +928,8 @@ function adminExportExcel(){
 
 // ===== INIT =====
 (function init(){
-  // Check if cfg exists — if not, show settings hint on login
-  const o=cfg();
-  document.getElementById('tech-hdr-date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('admin-hdr-date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  // If no supabase config show a note
-  if(!o.url||!o.key){
-    document.getElementById('login-err').textContent='⚠ Η εφαρμογή δεν έχει ρυθμιστεί. Επικοινωνήστε με τον διαχειριστή.';
-    document.getElementById('login-err').style.display='block';
-  }
+  document.getElementById("tech-hdr-date").textContent=new Date().toLocaleDateString("el-GR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  document.getElementById("admin-hdr-date").textContent=new Date().toLocaleDateString("el-GR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 })();
 </script>
 </body>
