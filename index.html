@@ -442,7 +442,7 @@ function setLoginMode(m){
   document.querySelectorAll('.login-tab').forEach((b,i)=>b.classList.toggle('act',i===(m==='tech'?0:1)));
   document.getElementById('login-lbl').textContent=m==='tech'?'Κωδικός τεχνικού':'Κωδικός διαχειριστή';
   document.getElementById('login-code').placeholder=m==='tech'?'π.χ. AB1234':'Κωδικός...';
-  document.getElementById('login-code').type=m==='tech'?'text':'password';
+  document.getElementById('login-code').type='text';
   document.getElementById('login-code').value='';
   document.getElementById('login-err').style.display='none';
 }
@@ -454,7 +454,7 @@ async function doLogin(){
 
   if(loginMode==='admin'){
     // Admin login works always — Supabase configured later from Settings
-    const savedPw=o.adminPw||'admin123';
+    const savedPw=o.adminPw||'Afoi*28063';
     if(code===savedPw){
       SESSION={type:'admin'};
       showScreen('admin');
@@ -828,27 +828,35 @@ async function loadTechnicianCards(){
 
 function renderTechCards(techs){
   const el=document.getElementById('tech-cards-container');
-  if(!techs.length){el.innerHTML='<div class="empty"><i class="ti ti-users"></i>Δεν υπάρχουν τεχνικοί ακόμα.</div>';return}
-  el.innerHTML='<div class="tech-cards">'+techs.map(t=>{
+  if(!techs.length){
+    el.innerHTML='<div class="empty"><i class="ti ti-users"></i>Δεν υπάρχουν τεχνικοί ακόμα.<br><br>Πάτα "Νέος τεχνικός" παραπάνω.</div>';
+    return;
+  }
+  let html=`<div style="background:var(--bg);border:.5px solid var(--brd);border-radius:var(--rl);overflow:hidden;margin-bottom:16px">
+    <div style="padding:12px 14px;font-size:13px;font-weight:600;border-bottom:.5px solid var(--brd);background:var(--bg2)">
+      Λίστα τεχνικών & κωδικών πρόσβασης (${techs.length} τεχνικοί)
+    </div>`;
+  techs.forEach(t=>{
     const myData=adminData.filter(e=>e.technician_code===t.code);
     const tot=myData.reduce((s,e)=>s+(e.duration_mins||0),0);
-    return`<div class="tech-card">
-      <div class="tech-card-top">
-        <div class="tech-av-lg">${initials(t.name)}</div>
-        <div style="flex:1">
-          <div class="tech-name">${esc(t.name)}</div>
-          <div class="tech-code">Κωδικός: ${t.code}</div>
-        </div>
-        <button class="toggle-btn" onclick="toggleTech(${t.id},'${!t.active}')">${t.active?'Απενεργ.':'Ενεργοπ.'}</button>
+    html+=`<div style="padding:14px;border-bottom:.5px solid var(--brd);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div class="tech-av-lg" style="width:36px;height:36px;font-size:13px;flex-shrink:0">${initials(t.name)}</div>
+      <div style="flex:1;min-width:120px">
+        <div style="font-size:15px;font-weight:600">${esc(t.name)}</div>
+        <div style="font-size:12px;color:var(--txt2);margin-top:2px">${myData.length} εγγραφές · ${fmtT(tot)}</div>
       </div>
-      <div class="tech-stats-row">
-        <div class="tech-stat"><span class="tech-stat-val">${fmtT(tot)}</span><span class="tech-stat-lbl">Ώρες</span></div>
-        <div class="tech-stat"><span class="tech-stat-val">${myData.length}</span><span class="tech-stat-lbl">Εγγραφές</span></div>
-        <div class="tech-stat"><span class="tech-stat-val">${t.active?'Ενεργός':'Ανενεργός'}</span><span class="tech-stat-lbl">Κατάσταση</span></div>
+      <div style="background:var(--bg2);border:.5px solid var(--brd);border-radius:10px;padding:8px 16px;text-align:center">
+        <div style="font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Κωδικός πρόσβασης</div>
+        <div style="font-family:monospace;font-size:22px;font-weight:700;letter-spacing:.15em;color:var(--txt)">${t.code}</div>
       </div>
-      <div class="code-display">${t.code}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+        <span style="font-size:11px;padding:3px 10px;border-radius:99px;font-weight:600;background:${t.active?'var(--ok-bg)':'var(--bg2)'};color:${t.active?'var(--ok)':'var(--txt2)'}">${t.active?'Ενεργός':'Ανενεργός'}</span>
+        <button class="toggle-btn" onclick="toggleTech(${t.id},'${!t.active}')" style="font-size:11px">${t.active?'Απενεργ.':'Ενεργοπ.'}</button>
+      </div>
     </div>`;
-  }).join('')+'</div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
 }
 
 function openNewTech(){
@@ -866,6 +874,7 @@ async function createTech(){
   if(!name){toast('nt-toast','⚠ Βάλε το ονοματεπώνυμο.','warn');return}
   if(!pendingCode)genCode();
   const o=cfg();
+  if(!o.url||!o.key){toast('nt-toast','⚠ Πήγαινε πρώτα στις Ρυθμίσεις και βάλε τα στοιχεία Supabase.','warn',6000);return}
   try{
     const r=await fetch(o.url+'/rest/v1/'+(o.techTable||'technicians'),{
       method:'POST',
