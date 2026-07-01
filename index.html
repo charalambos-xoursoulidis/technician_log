@@ -129,17 +129,18 @@ tbody td{padding:9px 11px;font-size:13px;vertical-align:middle}
 .modal-title{font-size:16px;font-weight:600;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
 .modal-close{background:var(--bg2);border:none;border-radius:50%;width:29px;height:29px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--txt2)}
 
-/* ===== WHEEL PICKER ===== */
-.wheel-picker-wrap{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--bg2);border:.5px solid var(--brd2);border-radius:var(--r);padding:8px;user-select:none;-webkit-user-select:none}
-.wheel-col{position:relative;width:64px;height:176px;overflow:hidden;cursor:grab}
-.wheel-col:active{cursor:grabbing}
-.wheel-inner{position:absolute;top:0;left:0;width:100%;will-change:transform}
-.wheel-item{height:44px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:400;color:var(--txt2);transition:color .15s,font-size .15s;line-height:1}
-.wheel-item.selected{font-size:26px;font-weight:700;color:var(--txt)}
-.wheel-sep{font-size:22px;font-weight:600;color:var(--txt);padding:0 2px;flex-shrink:0}
-.wheel-hl{position:absolute;top:50%;left:0;right:0;height:44px;transform:translateY(-50%);border-top:1.5px solid var(--brd2);border-bottom:1.5px solid var(--brd2);pointer-events:none;border-radius:4px}
-.wheel-mask-top{position:absolute;top:0;left:0;right:0;height:66px;background:linear-gradient(to bottom,var(--bg2) 30%,transparent 100%);pointer-events:none;z-index:2}
-.wheel-mask-bot{position:absolute;bottom:0;left:0;right:0;height:66px;background:linear-gradient(to top,var(--bg2) 30%,transparent 100%);pointer-events:none;z-index:2}
+/* ===== DRUM / WHEEL PICKER ===== */
+.drum-wrap{display:flex;align-items:center;justify-content:center;gap:4px;background:var(--bg2);border:.5px solid var(--brd2);border-radius:var(--r);padding:10px 8px;position:relative}
+.drum-col{width:70px;height:220px;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative}
+.drum-col::-webkit-scrollbar{display:none}
+.drum-item{height:44px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:400;color:var(--txt2);scroll-snap-align:center;flex-shrink:0;transition:color .1s,font-size .1s}
+.drum-item.drum-sel{font-size:28px;font-weight:700;color:var(--txt)}
+.drum-item.drum-pad{scroll-snap-align:none;pointer-events:none}
+.drum-sep{font-size:22px;font-weight:700;color:var(--txt);padding:0 4px;flex-shrink:0}
+.drum-hl{position:absolute;left:8px;right:8px;top:50%;height:44px;transform:translateY(-50%);border-top:2px solid var(--brd2);border-bottom:2px solid var(--brd2);pointer-events:none;border-radius:6px}
+.drum-fade-top{position:absolute;top:10px;left:0;right:0;height:80px;background:linear-gradient(to bottom,var(--bg2) 20%,transparent);pointer-events:none;z-index:1}
+.drum-fade-bot{position:absolute;bottom:10px;left:0;right:0;height:80px;background:linear-gradient(to top,var(--bg2) 20%,transparent);pointer-events:none;z-index:1}
+.drum-label{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.04em;text-align:center;margin-top:4px}
 </style>
 </head>
 <body>
@@ -209,21 +210,19 @@ tbody td{padding:9px 11px;font-size:13px;vertical-align:middle}
         <select id="e-wtype" style="margin-bottom:0"><option value="">— Επίλεξε —</option></select>
       </div>
       <div class="fl"><label>Διάρκεια εργασίας</label>
-        <div class="wheel-picker-wrap" id="dur-picker">
-          <div class="wheel-col" id="wheel-h-col">
-            <div class="wheel-inner" id="wheel-h-inner"></div>
-            <div class="wheel-hl"></div>
-            <div class="wheel-mask-top"></div>
-            <div class="wheel-mask-bot"></div>
+        <div class="drum-wrap">
+          <div>
+            <div class="drum-col" id="drum-h"></div>
+            <div class="drum-label">ώρες</div>
           </div>
-          <div class="wheel-sep">ώρες</div>
-          <div class="wheel-col" id="wheel-m-col">
-            <div class="wheel-inner" id="wheel-m-inner"></div>
-            <div class="wheel-hl"></div>
-            <div class="wheel-mask-top"></div>
-            <div class="wheel-mask-bot"></div>
+          <div class="drum-sep">:</div>
+          <div>
+            <div class="drum-col" id="drum-m"></div>
+            <div class="drum-label">λεπτά</div>
           </div>
-          <div class="wheel-sep">λεπτά</div>
+          <div class="drum-hl"></div>
+          <div class="drum-fade-top"></div>
+          <div class="drum-fade-bot"></div>
         </div>
         <input type="hidden" id="e-h" value="0">
         <input type="hidden" id="e-m" value="0">
@@ -799,8 +798,8 @@ function openEdit(id){
   editLocalId=id;
   sv('m-date',e.date);sv('m-task',e.task);sv('m-loc',e.proj||'');
   sv('m-h',Math.floor(e.mins/60));sv('m-m',e.mins%60);
-  if(wpMH)wpMH.setValue(Math.floor(e.mins/60));
-  if(wpMM)wpMM.setValue(Math.round((e.mins%60)/5)*5);
+  if(drumMH){drumSet(drumMH,Math.floor(e.mins/60),DRUM_HOURS);drumHighlight(drumMH);}
+  if(drumMM){drumSet(drumMM,Math.round((e.mins%60)/5)*5,DRUM_MINS);drumHighlight(drumMM);}
   document.getElementById('m-cat').value=e.cat;
   populateWorkTypes('m-wtype');
   if(e.wtype)document.getElementById('m-wtype').value=e.wtype;
@@ -1050,108 +1049,82 @@ function adminExcel(){
 }
 
 
-// ===== WHEEL PICKER ENGINE =====
-class WheelPicker {
-  constructor(innerEl, items, hiddenInput){
-    this.inner=innerEl;
-    this.items=items;
-    this.hidden=hiddenInput;
-    this.ih=44;
-    this.pad=2;
-    this.idx=0;
-    this.dragging=false;
-    this.startY=0;
-    this.startIdx=0;
-    this._build();
-    this._bind();
-  }
-  _build(){
-    let html='';
-    for(let i=0;i<this.pad;i++) html+='<div class="wheel-item"></div>';
-    this.items.forEach((t,i)=>{
-      html+=`<div class="wheel-item${i===0?' selected':''}">${String(t).padStart(2,'0')}</div>`;
-    });
-    for(let i=0;i<this.pad;i++) html+='<div class="wheel-item"></div>';
-    this.inner.innerHTML=html;
-    this._setY(0,false);
-  }
-  _els(){ return this.inner.querySelectorAll('.wheel-item'); }
-  _setY(idx,anim){
-    this.idx=Math.max(0,Math.min(idx,this.items.length-1));
-    const y=-this.idx*this.ih;
-    this.inner.style.transition=anim?'transform .2s cubic-bezier(.25,.46,.45,.94)':'none';
-    this.inner.style.transform='translateY('+y+'px)';
-    this._els().forEach((el,i)=>{
-      el.classList.toggle('selected', i===this.idx+this.pad);
-    });
-    if(this.hidden){
-      this.hidden.value=this.items[this.idx];
-    }
-  }
-  _bind(){
-    const col=this.inner.parentElement;
-    const start=(y)=>{
-      this.dragging=true;
-      this.startY=y;
-      this.startIdx=this.idx;
-      this.inner.style.transition='none';
-    };
-    const move=(y)=>{
-      if(!this.dragging) return;
-      const delta=Math.round((this.startY-y)/this.ih);
-      this._setY(this.startIdx+delta,false);
-    };
-    const end=()=>{
-      if(!this.dragging) return;
-      this.dragging=false;
-      this._setY(this.idx,true);
-    };
-    col.addEventListener('touchstart',e=>{start(e.touches[0].clientY);},{passive:true});
-    col.addEventListener('touchmove',e=>{e.preventDefault();move(e.touches[0].clientY);},{passive:false});
-    col.addEventListener('touchend',end,{passive:true});
-    col.addEventListener('mousedown',e=>{start(e.clientY);e.preventDefault();});
-    document.addEventListener('mousemove',e=>{if(this.dragging)move(e.clientY);});
-    document.addEventListener('mouseup',end);
-    col.addEventListener('wheel',e=>{
-      e.preventDefault();
-      this._setY(this.idx+(e.deltaY>0?1:-1),true);
-    },{passive:false});
-  }
-  setValue(v){
-    const n=parseInt(v)||0;
-    let best=0,bestDiff=9999;
-    this.items.forEach((item,i)=>{
-      const diff=Math.abs(item-n);
-      if(diff<bestDiff){bestDiff=diff;best=i;}
-    });
-    this._setY(best,false);
-  }
-  getValue(){return this.items[this.idx];}
+// ===== DRUM PICKER (native scroll-snap) =====
+const DRUM_IH = 44;
+const DRUM_PAD = 2;
+const DRUM_HOURS = [...Array(24).keys()];
+const DRUM_MINS  = [0,5,10,15,20,25,30,35,40,45,50,55];
+
+function buildDrum(colEl, items) {
+  let html = '';
+  for (let i = 0; i < DRUM_PAD; i++)
+    html += '<div class="drum-item drum-pad"></div>';
+  items.forEach(v =>
+    html += '<div class="drum-item">' + String(v).padStart(2,'0') + '</div>'
+  );
+  for (let i = 0; i < DRUM_PAD; i++)
+    html += '<div class="drum-item drum-pad"></div>';
+  colEl.innerHTML = html;
 }
 
-let wpH=null,wpM=null,wpMH=null,wpMM=null;
-const WP_HOURS=[...Array(24).keys()];
-const WP_MINS=[0,5,10,15,20,25,30,35,40,45,50,55];
+function drumSet(colEl, value, items) {
+  const idx = items.reduce((best,v,i) =>
+    Math.abs(v-value) < Math.abs(items[best]-value) ? i : best, 0);
+  colEl.scrollTop = idx * DRUM_IH;
+  drumHighlight(colEl);
+}
 
-function initWheels(){
-  const hInner=document.getElementById('wheel-h-inner');
-  const mInner=document.getElementById('wheel-m-inner');
-  const eH=document.getElementById('e-h');
-  const eM=document.getElementById('e-m');
-  if(hInner&&mInner&&eH&&eM){
-    wpH=new WheelPicker(hInner,WP_HOURS,eH);
-    wpM=new WheelPicker(mInner,WP_MINS,eM);
+function drumGet(colEl, items) {
+  const idx = Math.round(colEl.scrollTop / DRUM_IH);
+  return items[Math.max(0, Math.min(idx, items.length - 1))];
+}
+
+function drumHighlight(colEl) {
+  const idx = Math.round(colEl.scrollTop / DRUM_IH);
+  const els = colEl.querySelectorAll('.drum-item:not(.drum-pad)');
+  els.forEach((el, i) => el.classList.toggle('drum-sel', i === idx));
+}
+
+function drumBind(colEl, items, hiddenEl) {
+  colEl.addEventListener('scroll', () => {
+    drumHighlight(colEl);
+    if (hiddenEl) hiddenEl.value = drumGet(colEl, items);
+  }, { passive: true });
+}
+
+let drumH=null, drumM=null, drumMH=null, drumMM=null;
+
+function initWheels() {
+  const dh  = document.getElementById('drum-h');
+  const dm  = document.getElementById('drum-m');
+  const deh = document.getElementById('e-h');
+  const dem = document.getElementById('e-m');
+  const dmh = document.getElementById('drum-mh');
+  const dmm = document.getElementById('drum-mm');
+  const mh  = document.getElementById('m-h');
+  const mm  = document.getElementById('m-m');
+
+  if (dh && dm) {
+    buildDrum(dh, DRUM_HOURS);
+    buildDrum(dm, DRUM_MINS);
+    drumSet(dh, 0, DRUM_HOURS);
+    drumSet(dm, 0, DRUM_MINS);
+    drumBind(dh, DRUM_HOURS, deh);
+    drumBind(dm, DRUM_MINS,  dem);
+    drumH = dh; drumM = dm;
   }
-  const mhInner=document.getElementById('wheel-mh-inner');
-  const mmInner=document.getElementById('wheel-mm-inner');
-  const mH=document.getElementById('m-h');
-  const mM=document.getElementById('m-m');
-  if(mhInner&&mmInner&&mH&&mM){
-    wpMH=new WheelPicker(mhInner,WP_HOURS,mH);
-    wpMM=new WheelPicker(mmInner,WP_MINS,mM);
+  if (dmh && dmm) {
+    buildDrum(dmh, DRUM_HOURS);
+    buildDrum(dmm, DRUM_MINS);
+    drumSet(dmh, 0, DRUM_HOURS);
+    drumSet(dmm, 0, DRUM_MINS);
+    drumBind(dmh, DRUM_HOURS, mh);
+    drumBind(dmm, DRUM_MINS,  mm);
+    drumMH = dmh; drumMM = dmm;
   }
 }
-// ================================
+// =============================================
+
 
 (function init(){
   document.getElementById('ah-date').textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
