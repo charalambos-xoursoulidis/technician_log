@@ -129,15 +129,9 @@ tbody td{padding:9px 11px;font-size:13px;vertical-align:middle}
 .modal-title{font-size:16px;font-weight:600;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
 .modal-close{background:var(--bg2);border:none;border-radius:50%;width:29px;height:29px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--txt2)}
 
-/* ===== DRUM / WHEEL PICKER ===== */
-.drum-wrap{display:flex;align-items:center;justify-content:center;gap:12px;background:var(--bg2);border:.5px solid var(--brd2);border-radius:var(--r);padding:12px 16px}
-.drum-col{width:72px;height:220px;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;-webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 28%,#000 72%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0%,#000 28%,#000 72%,transparent 100%)}
-.drum-col::-webkit-scrollbar{display:none}
-.drum-item{height:44px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--txt2);scroll-snap-align:center;flex-shrink:0;font-weight:400}
-.drum-item.drum-sel{font-size:28px;font-weight:700;color:var(--txt)}
-.drum-item.drum-pad{scroll-snap-align:none;pointer-events:none}
-.drum-sep{font-size:26px;font-weight:700;color:var(--txt);margin-top:-20px}
-.drum-label{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.04em;text-align:center;margin-top:5px}
+/* ===== TIME INPUT ===== */
+.time-input-big{width:100%;padding:14px 16px;border:.5px solid var(--brd2);border-radius:var(--r);font-size:32px;font-weight:600;background:var(--bg2);color:var(--txt);font-family:inherit;text-align:center;outline:none;letter-spacing:.05em;cursor:pointer;-webkit-appearance:none;appearance:none}
+.time-input-big:focus{border-color:var(--txt)}
 </style>
 </head>
 <body>
@@ -207,19 +201,8 @@ tbody td{padding:9px 11px;font-size:13px;vertical-align:middle}
         <select id="e-wtype" style="margin-bottom:0"><option value="">— Επίλεξε —</option></select>
       </div>
       <div class="fl"><label>Διάρκεια εργασίας</label>
-        <div class="drum-wrap">
-          <div>
-            <div class="drum-col" id="drum-h"></div>
-            <div class="drum-label">ώρες</div>
-          </div>
-          <div class="drum-sep">:</div>
-          <div>
-            <div class="drum-col" id="drum-m"></div>
-            <div class="drum-label">λεπτά</div>
-          </div>
-        </div>
-        <input type="hidden" id="e-h" value="0">
-        <input type="hidden" id="e-m" value="0">
+        <input type="time" id="e-time" class="time-input-big" value="00:00">
+        <div style="text-align:center;font-size:12px;color:var(--txt2);margin-top:5px">Πάτα για να επιλέξεις ώρα</div>
       </div>
       <div class="fl"><label>Έργο</label>
         <select id="e-proj" onchange="toggleCustomProj()"><option value="">— Επίλεξε έργο —</option></select>
@@ -368,9 +351,8 @@ tbody td{padding:9px 11px;font-size:13px;vertical-align:middle}
       </select>
     </div>
     <div class="fl"><label>Είδος εργασίας</label><select id="m-wtype"><option value="">— Επίλεξε —</option></select></div>
-    <div class="g2" style="margin-bottom:12px">
-      <div class="fl" style="margin:0"><label>Ώρες</label><input type="number" id="m-h" min="0" max="24" inputmode="numeric"></div>
-      <div class="fl" style="margin:0"><label>Λεπτά</label><input type="number" id="m-m" min="0" max="59" inputmode="numeric"></div>
+    <div class="fl"><label>Διάρκεια</label>
+      <input type="time" id="m-time" class="time-input-big" value="00:00">
     </div>
     <div class="fl"><label>Έργο / Τοποθεσία</label><input type="text" id="m-loc"></div>
     <button class="btn-p" onclick="saveEdit()"><i class="ti ti-check"></i> Αποθήκευση</button>
@@ -645,14 +627,14 @@ async function deleteProj(id){
 // ===== SAVE ENTRY =====
 function toMins(h,m){return(parseInt(h)||0)*60+(parseInt(m)||0)}
 function getDuration(){
-  const h=parseInt(document.getElementById('e-h').value)||0;
-  const m=parseInt(document.getElementById('e-m').value)||0;
-  return h*60+m;
+  const t=document.getElementById('e-time').value||'00:00';
+  const [h,m]=t.split(':').map(Number);
+  return (h||0)*60+(m||0);
 }
 function getEditDuration(){
-  const h=parseInt(document.getElementById('m-h').value)||0;
-  const m=parseInt(document.getElementById('m-m').value)||0;
-  return h*60+m;
+  const t=document.getElementById('m-time').value||'00:00';
+  const [h,m]=t.split(':').map(Number);
+  return (h||0)*60+(m||0);
 }
 async function saveEntry(){
   const task=gv('e-task').trim(),date=gv('e-date'),mins=toMins(gv('e-h'),gv('e-m'));
@@ -791,11 +773,10 @@ function openEdit(id){
   const e=loadLocal().find(x=>x.id===id);if(!e)return;
   editLocalId=id;
   sv('m-date',e.date);sv('m-task',e.task);sv('m-loc',e.proj||'');
-  sv('m-h',Math.floor(e.mins/60));sv('m-m',e.mins%60);
-  setTimeout(()=>{
-    if(drumMH){buildDrum(drumMH,DRUM_HOURS);drumBind(drumMH,DRUM_HOURS,document.getElementById('m-h'));drumSet(drumMH,Math.floor(e.mins/60),DRUM_HOURS);drumHighlight(drumMH);}
-    if(drumMM){buildDrum(drumMM,DRUM_MINS);drumBind(drumMM,DRUM_MINS,document.getElementById('m-m'));drumSet(drumMM,Math.round((e.mins%60)/5)*5,DRUM_MINS);drumHighlight(drumMM);}
-  },80);
+  const hh=String(Math.floor(e.mins/60)).padStart(2,'0');
+  const mm=String(e.mins%60).padStart(2,'0');
+  sv('m-time',hh+':'+mm);
+
   document.getElementById('m-cat').value=e.cat;
   populateWorkTypes('m-wtype');
   if(e.wtype)document.getElementById('m-wtype').value=e.wtype;
@@ -1045,84 +1026,9 @@ function adminExcel(){
 }
 
 
-// ===== DRUM PICKER (native scroll-snap) =====
-const DRUM_IH = 44;
-const DRUM_PAD = 2;
-const DRUM_HOURS = [...Array(24).keys()];
-const DRUM_MINS  = [0,5,10,15,20,25,30,35,40,45,50,55];
-
-function buildDrum(colEl, items) {
-  let html = '';
-  for (let i = 0; i < DRUM_PAD; i++)
-    html += '<div class="drum-item drum-pad"></div>';
-  items.forEach(v =>
-    html += '<div class="drum-item">' + String(v).padStart(2,'0') + '</div>'
-  );
-  for (let i = 0; i < DRUM_PAD; i++)
-    html += '<div class="drum-item drum-pad"></div>';
-  colEl.innerHTML = html;
-}
-
-function drumSet(colEl, value, items) {
-  const idx = items.reduce((best,v,i) =>
-    Math.abs(v-value) < Math.abs(items[best]-value) ? i : best, 0);
-  colEl.scrollTop = idx * DRUM_IH;
-  drumHighlight(colEl);
-}
-
-function drumGet(colEl, items) {
-  const idx = Math.round(colEl.scrollTop / DRUM_IH);
-  return items[Math.max(0, Math.min(idx, items.length - 1))];
-}
-
-function drumHighlight(colEl) {
-  const idx = Math.round(colEl.scrollTop / DRUM_IH);
-  const els = colEl.querySelectorAll('.drum-item:not(.drum-pad)');
-  els.forEach((el, i) => el.classList.toggle('drum-sel', i === idx));
-}
-
-function drumBind(colEl, items, hiddenEl) {
-  colEl.addEventListener('scroll', () => {
-    drumHighlight(colEl);
-    if (hiddenEl) hiddenEl.value = drumGet(colEl, items);
-  }, { passive: true });
-}
-
-let drumH=null, drumM=null, drumMH=null, drumMM=null;
-
-function initWheels() {
-  const dh  = document.getElementById('drum-h');
-  const dm  = document.getElementById('drum-m');
-  const deh = document.getElementById('e-h');
-  const dem = document.getElementById('e-m');
-  const dmh = document.getElementById('drum-mh');
-  const dmm = document.getElementById('drum-mm');
-  const mh  = document.getElementById('m-h');
-  const mm  = document.getElementById('m-m');
-
-  if (dh && dm) {
-    buildDrum(dh, DRUM_HOURS);
-    buildDrum(dm, DRUM_MINS);
-    drumBind(dh, DRUM_HOURS, deh);
-    drumBind(dm, DRUM_MINS,  dem);
-    drumH = dh; drumM = dm;
-    // setTimeout ensures scrollTop works even if parent was display:none
-    setTimeout(()=>{ drumSet(dh,0,DRUM_HOURS); drumSet(dm,0,DRUM_MINS); },80);
-  }
-  if (dmh && dmm) {
-    buildDrum(dmh, DRUM_HOURS);
-    buildDrum(dmm, DRUM_MINS);
-    drumBind(dmh, DRUM_HOURS, mh);
-    drumBind(dmm, DRUM_MINS,  mm);
-    drumMH = dmh; drumMM = dmm;
-  }
-}
-
-function resetDrums() {
-  // Called when the add tab becomes visible to re-apply scrollTop
-  if (drumH) { drumSet(drumH,0,DRUM_HOURS); drumHighlight(drumH); }
-  if (drumM) { drumSet(drumM,0,DRUM_MINS);  drumHighlight(drumM); }
-}
+// ===== TIME INPUT (native) =====
+function initWheels(){} // time input is native, no init needed
+function resetDrums(){}
 // =============================================
 
 
