@@ -129,9 +129,13 @@ tbody td{padding:9px 11px;font-size:13px;vertical-align:middle}
 .modal-title{font-size:16px;font-weight:600;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
 .modal-close{background:var(--bg2);border:none;border-radius:50%;width:29px;height:29px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--txt2)}
 
-/* ===== TIME INPUT ===== */
-.time-input-big{width:100%;padding:14px 16px;border:.5px solid var(--brd2);border-radius:var(--r);font-size:32px;font-weight:600;background:var(--bg2);color:var(--txt);font-family:inherit;text-align:center;outline:none;letter-spacing:.05em;cursor:pointer;-webkit-appearance:none;appearance:none}
-.time-input-big:focus{border-color:var(--txt)}
+/* ===== DURATION PICKER ===== */
+.dur-wrap{display:flex;gap:10px;align-items:stretch}
+.dur-group{flex:1;display:flex;flex-direction:column;gap:5px}
+.dur-label{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;text-align:center}
+.dur-select{width:100%;padding:14px 8px;border:.5px solid var(--brd2);border-radius:var(--r);font-size:28px;font-weight:700;background:var(--bg2);color:var(--txt);font-family:inherit;text-align:center;text-align-last:center;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none}
+.dur-select:focus{border-color:var(--txt);background:var(--bg)}
+.dur-sep{font-size:28px;font-weight:700;color:var(--txt);display:flex;align-items:center;padding-top:18px}
 </style>
 </head>
 <body>
@@ -201,8 +205,21 @@ tbody td{padding:9px 11px;font-size:13px;vertical-align:middle}
         <select id="e-wtype" style="margin-bottom:0"><option value="">— Επίλεξε —</option></select>
       </div>
       <div class="fl"><label>Διάρκεια εργασίας</label>
-        <input type="time" id="e-time" class="time-input-big" value="00:00">
-        <div style="text-align:center;font-size:12px;color:var(--txt2);margin-top:5px">Πάτα για να επιλέξεις ώρα</div>
+        <div class="dur-wrap">
+          <div class="dur-group">
+            <select id="e-hours" class="dur-select">
+<option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+            </select>
+            <div class="dur-label">Ώρες</div>
+          </div>
+          <div class="dur-sep">:</div>
+          <div class="dur-group">
+            <select id="e-mins" class="dur-select">
+<option value="0">00</option><option value="5">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
+            </select>
+            <div class="dur-label">Λεπτά</div>
+          </div>
+        </div>
       </div>
       <div class="fl"><label>Έργο</label>
         <select id="e-proj" onchange="toggleCustomProj()"><option value="">— Επίλεξε έργο —</option></select>
@@ -352,7 +369,21 @@ tbody td{padding:9px 11px;font-size:13px;vertical-align:middle}
     </div>
     <div class="fl"><label>Είδος εργασίας</label><select id="m-wtype"><option value="">— Επίλεξε —</option></select></div>
     <div class="fl"><label>Διάρκεια</label>
-      <input type="time" id="m-time" class="time-input-big" value="00:00">
+      <div class="dur-wrap">
+        <div class="dur-group">
+          <select id="m-hours" class="dur-select">
+<option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+          </select>
+          <div class="dur-label">Ώρες</div>
+        </div>
+        <div class="dur-sep">:</div>
+        <div class="dur-group">
+          <select id="m-mins" class="dur-select">
+<option value="0">00</option><option value="5">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
+          </select>
+          <div class="dur-label">Λεπτά</div>
+        </div>
+      </div>
     </div>
     <div class="fl"><label>Έργο / Τοποθεσία</label><input type="text" id="m-loc"></div>
     <button class="btn-p" onclick="saveEdit()"><i class="ti ti-check"></i> Αποθήκευση</button>
@@ -627,14 +658,14 @@ async function deleteProj(id){
 // ===== SAVE ENTRY =====
 function toMins(h,m){return(parseInt(h)||0)*60+(parseInt(m)||0)}
 function getDuration(){
-  const t=document.getElementById('e-time').value||'00:00';
-  const [h,m]=t.split(':').map(Number);
-  return (h||0)*60+(m||0);
+  const h=parseInt(document.getElementById('e-hours').value)||0;
+  const m=parseInt(document.getElementById('e-mins').value)||0;
+  return h*60+m;
 }
 function getEditDuration(){
-  const t=document.getElementById('m-time').value||'00:00';
-  const [h,m]=t.split(':').map(Number);
-  return (h||0)*60+(m||0);
+  const h=parseInt(document.getElementById('m-hours').value)||0;
+  const m=parseInt(document.getElementById('m-mins').value)||0;
+  return h*60+m;
 }
 async function saveEntry(){
   const task=gv('e-task').trim(),date=gv('e-date'),mins=toMins(gv('e-h'),gv('e-m'));
@@ -773,9 +804,8 @@ function openEdit(id){
   const e=loadLocal().find(x=>x.id===id);if(!e)return;
   editLocalId=id;
   sv('m-date',e.date);sv('m-task',e.task);sv('m-loc',e.proj||'');
-  const hh=String(Math.floor(e.mins/60)).padStart(2,'0');
-  const mm=String(e.mins%60).padStart(2,'0');
-  sv('m-time',hh+':'+mm);
+  sv('m-hours', Math.floor(e.mins/60));
+  sv('m-mins', Math.round((e.mins%60)/5)*5);
 
   document.getElementById('m-cat').value=e.cat;
   populateWorkTypes('m-wtype');
