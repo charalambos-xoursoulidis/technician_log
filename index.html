@@ -668,7 +668,7 @@ function getEditDuration(){
   return h*60+m;
 }
 async function saveEntry(){
-  const task=gv('e-task').trim(),date=gv('e-date'),mins=toMins(gv('e-h'),gv('e-m'));
+  const task=gv('e-task').trim(),date=gv('e-date'),mins=getDuration();
   if(!task){toast('add-toast','⚠ Συμπλήρωσε την περιγραφή.','warn');return}
   if(!date){toast('add-toast','⚠ Επίλεξε ημερομηνία.','warn');return}
   if(!mins){toast('add-toast','⚠ Βάλε τη διάρκεια.','warn');return}
@@ -676,7 +676,7 @@ async function saveEntry(){
     proj:getProjectValue(),techName:SESSION.tech.name,techCode:SESSION.tech.code,
     synced:false,created_at:new Date().toISOString()};
   const d=loadLocal();d.push(entry);saveLocal(d);
-  sv('e-task','');sv('e-h','');sv('e-m','');
+  sv('e-task','');sv('e-hours','0');sv('e-mins','0');
   document.getElementById('e-proj').value='';
   document.getElementById('e-proj-other').style.display='none';
   document.getElementById('e-proj-other').value='';
