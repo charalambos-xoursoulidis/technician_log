@@ -590,13 +590,18 @@ function getProjectValue(){
   return v;
 }
 
+
+function stripEmoji(str){
+  return str.replace(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/u,'').trim();
+}
 // ===== RENDER LISTS IN SETTINGS =====
 function renderWorkTypesList(){
   const el=document.getElementById('wt-list');if(!el)return;
   if(!workTypesList.length){el.innerHTML='<div style="font-size:13px;color:var(--txt2);padding:8px 0">Δεν υπάρχουν είδη εργασίας.</div>';return}
   el.innerHTML=workTypesList.map(w=>`
-    <div class="list-item">
-      <span class="list-item-name">${esc(w.name)}</span>
+    <div class="list-item" id="wt-row-${w.id}">
+      <span class="list-item-name">${esc(stripEmoji(w.name))}</span>
+      <button class="list-edit" onclick="startEditWT(${w.id})"><i class="ti ti-pencil"></i></button>
       <button class="list-toggle ${w.active?'lt-on':'lt-off'}" onclick="toggleWT(${w.id},${!w.active})">${w.active?'Ενεργό':'Κρυφό'}</button>
       <button class="list-del" onclick="deleteWT(${w.id})"><i class="ti ti-trash"></i></button>
     </div>`).join('');
@@ -605,8 +610,9 @@ function renderProjectsList(){
   const el=document.getElementById('proj-list');if(!el)return;
   if(!projectsList.length){el.innerHTML='<div style="font-size:13px;color:var(--txt2);padding:8px 0">Δεν υπάρχουν έργα.</div>';return}
   el.innerHTML=projectsList.map(p=>`
-    <div class="list-item">
+    <div class="list-item" id="proj-row-${p.id}">
       <span class="list-item-name">${esc(p.name)}</span>
+      <button class="list-edit" onclick="startEditProj(${p.id})"><i class="ti ti-pencil"></i></button>
       <button class="list-toggle ${p.active?'lt-on':'lt-off'}" onclick="toggleProj(${p.id},${!p.active})">${p.active?'Ενεργό':'Κρυφό'}</button>
       <button class="list-del" onclick="deleteProj(${p.id})"><i class="ti ti-trash"></i></button>
     </div>`).join('');
@@ -640,6 +646,32 @@ async function deleteWT(id){
   await fetch(o.url+'/rest/v1/work_types?id=eq.'+id,{method:'DELETE',
     headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}});
   workTypesList=workTypesList.filter(w=>w.id!==id);renderWorkTypesList();
+}
+function startEditWT(id){
+  const w=workTypesList.find(x=>x.id===id);if(!w)return;
+  const row=document.getElementById('wt-row-'+id);if(!row)return;
+  const nameSpan=row.querySelector('.list-item-name');
+  const editBtn=row.querySelector('.list-edit');
+  nameSpan.innerHTML=`<input class="list-item-edit-input" id="wt-inp-${id}" value="${esc(stripEmoji(w.name))}">`;
+  editBtn.innerHTML='<i class="ti ti-check"></i>';
+  editBtn.className='list-save';
+  editBtn.onclick=()=>saveEditWT(id);
+  const cancelBtn=document.createElement('button');
+  cancelBtn.className='list-cancel';cancelBtn.textContent='✕';
+  cancelBtn.onclick=()=>renderWorkTypesList();
+  editBtn.after(cancelBtn);
+  document.getElementById('wt-inp-'+id).focus();
+}
+async function saveEditWT(id){
+  const inp=document.getElementById('wt-inp-'+id);if(!inp)return;
+  const name=inp.value.trim();if(!name)return;
+  const o=cfg();
+  const r=await fetch(o.url+'/rest/v1/work_types?id=eq.'+id,{method:'PATCH',
+    headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key},
+    body:JSON.stringify({name})});
+  if(r.ok){const i=workTypesList.findIndex(w=>w.id===id);if(i>=0)workTypesList[i].name=name;}
+  renderWorkTypesList();
+  populateWorkTypes('e-wtype');populateWorkTypes('m-wtype');populateWorkTypes('ae-wtype');
 }
 
 // PROJECT CRUD
