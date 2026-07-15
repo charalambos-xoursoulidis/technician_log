@@ -604,12 +604,16 @@ function updateSyncStatus(){
 async function loadLists(){
   const o=cfg();if(!o.url||!o.key)return;
   try{
-    const [r1,r2]=await Promise.all([
+    const [r1,r2,r3]=await Promise.all([
+      fetch(o.url+'/rest/v1/categories?order=sort_order.asc',{headers:{apikey:o.key,'Authorization':'Bearer '+o.key}}),
       fetch(o.url+'/rest/v1/work_types?order=sort_order.asc',{headers:{apikey:o.key,'Authorization':'Bearer '+o.key}}),
-      fetch(o.url+'/rest/v1/projects?order=sort_order.asc',{headers:{apikey:o.key,'Authorization':'Bearer '+o.key}})
+      fetch(o.url+'/rest/v1/projects?active=eq.true&order=sort_order.asc',{headers:{apikey:o.key,'Authorization':'Bearer '+o.key}})
     ]);
-    if(r1.ok)workTypesList=await r1.json();
-    if(r2.ok)projectsList=await r2.json();
+    if(r1.ok)categoriesList=await r1.json();
+    if(r2.ok)workTypesList=await r2.json();
+    if(r3.ok)projectsList=await r3.json();
+    populateCategories('e-cat');
+    populateCategories('m-cat');
   }catch(e){}
 }
 function populateCategories(selId){
@@ -689,17 +693,31 @@ function renderWorkTypesList2(){
   if(filterCatId)wts=wts.filter(w=>w.category_id===filterCatId);
   if(!wts.length){el.innerHTML='<div style="font-size:13px;color:var(--txt2);padding:8px">Δεν υπάρχουν είδη εργασίας.</div>';return}
   el.innerHTML=wts.map(w=>{
-    const cat=categoriesList.find(c=>c.id===w.category_id);
+    const catOpts='<option value="">— χωρίς κατηγορία —</option>'+categoriesList.map(c=>
+      `<option value="${c.id}" ${c.id===w.category_id?'selected':''}>${esc(c.name)}</option>`).join('');
     return`<div class="list-item" id="wt2-row-${w.id}">
       <div style="flex:1;min-width:100px">
         <div class="list-item-name">${esc(w.name)}</div>
-        <div style="font-size:11px;color:var(--txt2)">${cat?esc(cat.name):'— χωρίς κατηγορία'}</div>
+        <select onchange="setWTCategory(${w.id},this.value)" style="margin-top:4px;padding:4px 8px;border:.5px solid var(--brd2);border-radius:6px;font-size:12px;background:var(--bg);color:var(--txt2);font-family:inherit;max-width:200px">
+          ${catOpts}
+        </select>
       </div>
       <button class="list-edit" onclick="startEditWT2(${w.id})"><i class="ti ti-pencil"></i></button>
       <button class="list-toggle ${w.active?'lt-on':'lt-off'}" onclick="toggleWT2(${w.id},${!w.active})">${w.active?'Ενεργό':'Κρυφό'}</button>
       <button class="list-del" onclick="deleteWT2(${w.id})"><i class="ti ti-trash"></i></button>
     </div>`;
   }).join('');
+}
+async function setWTCategory(id,catId){
+  const o=cfg();
+  const category_id=catId?parseInt(catId):null;
+  const r=await fetch(o.url+'/rest/v1/work_types?id=eq.'+id,{method:'PATCH',
+    headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key},
+    body:JSON.stringify({category_id})});
+  if(r.ok){
+    const i=workTypesList.findIndex(w=>w.id===id);
+    if(i>=0)workTypesList[i].category_id=category_id;
+  }
 }
 function renderProjectsList2(){
   const el=document.getElementById('proj-list2');if(!el)return;
