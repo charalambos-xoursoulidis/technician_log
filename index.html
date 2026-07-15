@@ -200,9 +200,8 @@ tbody td{padding:9px 11px;font-size:13px;vertical-align:middle}
       </div>
       <div class="fl"><label>Ημερομηνία</label><input type="date" id="e-date"></div>
       <div class="fl"><label>Κατηγορία</label>
-        <select id="e-cat">
-          <option>🔧 Εγκατάσταση</option><option>🔩 Συντήρηση</option><option>🛠️ Επισκευή</option>
-          <option>🔍 Έλεγχος</option><option>🚗 Μεταφορά</option><option>📋 Άλλο</option>
+        <select id="e-cat" onchange="onCatChange('e-cat','e-wtype')">
+          <option value="">— Επίλεξε κατηγορία —</option>
         </select>
       </div>
       <div class="fl"><label>Είδος εργασίας</label>
@@ -266,6 +265,7 @@ tbody td{padding:9px 11px;font-size:13px;vertical-align:middle}
       <button class="nb act" onclick="showATab('ov')"><i class="ti ti-layout-dashboard"></i>Επισκόπηση</button>
       <button class="nb" onclick="showATab('en')"><i class="ti ti-list"></i>Εγγραφές</button>
       <button class="nb" onclick="showATab('tc')"><i class="ti ti-users"></i>Τεχνικοί</button>
+      <button class="nb" onclick="showATab('mg')"><i class="ti ti-list-check"></i>Διαχείριση</button>
       <button class="nb" onclick="showATab('st')"><i class="ti ti-settings"></i>Ρυθμίσεις</button>
     </nav>
 
@@ -306,6 +306,53 @@ tbody td{padding:9px 11px;font-size:13px;vertical-align:middle}
     <div id="at-tc" class="sec" style="background:var(--bg3)">
       <button class="btn-p" style="margin-bottom:14px" onclick="openNewTech()"><i class="ti ti-user-plus"></i> Νέος τεχνικός</button>
       <div id="tc-list"></div>
+    </div>
+
+    <!-- ΔΙΑΧΕΙΡΙΣΗ -->
+    <div id="at-mg" class="sec" style="background:var(--bg3)">
+
+      <!-- Κατηγορίες -->
+      <div class="cfg-block">
+        <div class="cfg-title"><i class="ti ti-folder"></i> Κατηγορίες</div>
+        <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Οι κατηγορίες που βλέπουν οι τεχνικοί. Κάθε κατηγορία έχει τα δικά της είδη εργασίας.</p>
+        <div id="cat-list"></div>
+        <div class="add-row">
+          <input type="text" id="cat-new" placeholder="Νέα κατηγορία...">
+          <button onclick="addCat()"><i class="ti ti-plus"></i> Προσθήκη</button>
+        </div>
+        <div class="toast" id="cat-toast"></div>
+      </div>
+
+      <!-- Είδη εργασίας -->
+      <div class="cfg-block">
+        <div class="cfg-title"><i class="ti ti-tags"></i> Είδη εργασίας</div>
+        <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Κάθε είδος ανήκει σε μια κατηγορία. Φιλτράρισε ανά κατηγορία:</p>
+        <div style="margin-bottom:10px">
+          <select id="filter-cat-sel" onchange="renderWorkTypesList()" style="width:100%;padding:8px 12px;border:.5px solid var(--brd2);border-radius:var(--r);font-size:14px;background:var(--bg);color:var(--txt);font-family:inherit">
+            <option value="">— Όλες οι κατηγορίες —</option>
+          </select>
+        </div>
+        <div id="wt-list2"></div>
+        <div class="add-row" style="flex-wrap:wrap;gap:6px">
+          <select id="wt-cat-sel" style="flex:0 0 auto;padding:8px 10px;border:.5px solid var(--brd2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--txt);font-family:inherit">
+            <option value="">— Κατηγορία —</option>
+          </select>
+          <input type="text" id="wt-new2" placeholder="Νέο είδος εργασίας..." style="flex:1;min-width:120px">
+          <button onclick="addWorkType2()"><i class="ti ti-plus"></i> Προσθήκη</button>
+        </div>
+        <div class="toast" id="wt2-toast"></div>
+      </div>
+
+      <!-- Έργα -->
+      <div class="cfg-block">
+        <div class="cfg-title"><i class="ti ti-building"></i> Έργα / Τοποθεσίες</div>
+        <div id="proj-list2"></div>
+        <div class="add-row">
+          <input type="text" id="proj-new2" placeholder="Νέο έργο / τοποθεσία...">
+          <button onclick="addProject2()"><i class="ti ti-plus"></i> Προσθήκη</button>
+        </div>
+        <div class="toast" id="proj2-toast"></div>
+      </div>
     </div>
 
     <!-- ΡΥΘΜΙΣΕΙΣ -->
@@ -455,7 +502,7 @@ const PRESET_KEY='sb_publishable_svX2UeTzNJHfTJlVG4X-bg_mBkKHmnn';
 
 const LS='twl_v5',CS='cfg_v5';
 let SESSION=null,adminData=[],adminFlt=[],editLocalId=null,editAdminId=null,pendingCode='';
-let workTypesList=[],projectsList=[];
+let workTypesList=[],projectsList=[],categoriesList=[];
 
 // ===== CONFIG =====
 function cfg(){
@@ -565,12 +612,28 @@ async function loadLists(){
     if(r2.ok)projectsList=await r2.json();
   }catch(e){}
 }
-function populateWorkTypes(selId){
+function populateCategories(selId){
   const sel=document.getElementById(selId);if(!sel)return;
-  const cur=sel.value;
-  sel.innerHTML='<option value="">— Επίλεξε είδος —</option>';
-  workTypesList.filter(w=>w.active).forEach(w=>{sel.innerHTML+=`<option value="${esc(w.name)}">${esc(w.name)}</option>`});
-  if(cur)sel.value=cur;
+  const prev=sel.value;
+  sel.innerHTML='<option value="">— Επίλεξε κατηγορία —</option>';
+  categoriesList.filter(c=>c.active).forEach(c=>{
+    sel.innerHTML+=`<option value="${c.id}">${esc(c.name)}</option>`;
+  });
+  if(prev)sel.value=prev;
+}
+function onCatChange(catSelId,wtSelId){
+  const catSel=document.getElementById(catSelId);
+  const catId=catSel?catSel.value:'';
+  populateWorkTypes(wtSelId,catId);
+  const wtSel=document.getElementById(wtSelId);
+  if(wtSel)wtSel.value='';
+}
+function populateWorkTypes(selId,catId){
+  const sel=document.getElementById(selId);if(!sel)return;
+  sel.innerHTML='<option value="">— Επίλεξε —</option>';
+  let wts=workTypesList.filter(w=>w.active);
+  if(catId)wts=wts.filter(w=>String(w.category_id)===String(catId));
+  wts.forEach(w=>{sel.innerHTML+=`<option value="${esc(w.name)}">${esc(w.name)}</option>`});
 }
 function populateProjects(){
   const sel=document.getElementById('e-proj');if(!sel)return;
@@ -618,16 +681,230 @@ function renderProjectsList(){
     </div>`).join('');
 }
 
-// WT CRUD
-async function addWorkType(){
-  const name=gv('wt-new').trim();if(!name)return;
+function renderWorkTypesList2(){
+  const el=document.getElementById('wt-list2');if(!el)return;
+  const filterCat=document.getElementById('filter-cat-sel');
+  const filterCatId=filterCat?parseInt(filterCat.value)||0:0;
+  let wts=workTypesList;
+  if(filterCatId)wts=wts.filter(w=>w.category_id===filterCatId);
+  if(!wts.length){el.innerHTML='<div style="font-size:13px;color:var(--txt2);padding:8px">Δεν υπάρχουν είδη εργασίας.</div>';return}
+  el.innerHTML=wts.map(w=>{
+    const cat=categoriesList.find(c=>c.id===w.category_id);
+    return`<div class="list-item" id="wt2-row-${w.id}">
+      <div style="flex:1;min-width:100px">
+        <div class="list-item-name">${esc(w.name)}</div>
+        <div style="font-size:11px;color:var(--txt2)">${cat?esc(cat.name):'— χωρίς κατηγορία'}</div>
+      </div>
+      <button class="list-edit" onclick="startEditWT2(${w.id})"><i class="ti ti-pencil"></i></button>
+      <button class="list-toggle ${w.active?'lt-on':'lt-off'}" onclick="toggleWT2(${w.id},${!w.active})">${w.active?'Ενεργό':'Κρυφό'}</button>
+      <button class="list-del" onclick="deleteWT2(${w.id})"><i class="ti ti-trash"></i></button>
+    </div>`;
+  }).join('');
+}
+function renderProjectsList2(){
+  const el=document.getElementById('proj-list2');if(!el)return;
+  if(!projectsList.length){el.innerHTML='<div style="font-size:13px;color:var(--txt2);padding:8px">Δεν υπάρχουν έργα.</div>';return}
+  el.innerHTML=projectsList.map(p=>`
+    <div class="list-item" id="proj2-row-${p.id}">
+      <span class="list-item-name">${esc(p.name)}</span>
+      <button class="list-edit" onclick="startEditProj2(${p.id})"><i class="ti ti-pencil"></i></button>
+      <button class="list-toggle ${p.active?'lt-on':'lt-off'}" onclick="toggleProj2(${p.id},${!p.active})">${p.active?'Ενεργό':'Κρυφό'}</button>
+      <button class="list-del" onclick="deleteProj2(${p.id})"><i class="ti ti-trash"></i></button>
+    </div>`).join('');
+}
+async function addWorkType2(){
+  const name=(document.getElementById('wt-new2')?.value||'').trim();
+  if(!name){toast('wt2-toast','⚠ Βάλε όνομα.','warn');return}
+  const catId=parseInt(document.getElementById('wt-cat-sel')?.value)||0;
+  if(!catId){toast('wt2-toast','⚠ Επίλεξε κατηγορία.','warn');return}
   const o=cfg();
   try{
     const r=await fetch(o.url+'/rest/v1/work_types',{method:'POST',
       headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key,'Prefer':'return=representation'},
-      body:JSON.stringify({name,active:true,sort_order:workTypesList.length+1})});
+      body:JSON.stringify({name,active:true,category_id:catId,sort_order:workTypesList.length+1})});
+    if(r.ok){const d=await r.json();workTypesList.push(d[0]);document.getElementById('wt-new2').value='';
+      renderWorkTypesList2();toast('wt2-toast','✓ Προστέθηκε!','ok');}
+    else toast('wt2-toast','✗ Σφάλμα','err');
+  }catch(e){toast('wt2-toast','✗ '+e.message,'err')}
+}
+async function toggleWT2(id,active){
+  const o=cfg();
+  await fetch(o.url+'/rest/v1/work_types?id=eq.'+id,{method:'PATCH',
+    headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key},body:JSON.stringify({active})});
+  const i=workTypesList.findIndex(w=>w.id===id);if(i>=0)workTypesList[i].active=active;
+  renderWorkTypesList2();
+}
+async function deleteWT2(id){
+  if(!confirm('Διαγραφή;'))return;const o=cfg();
+  await fetch(o.url+'/rest/v1/work_types?id=eq.'+id,{method:'DELETE',headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}});
+  workTypesList=workTypesList.filter(w=>w.id!==id);renderWorkTypesList2();
+}
+function startEditWT2(id){
+  const w=workTypesList.find(x=>x.id===id);if(!w)return;
+  const row=document.getElementById('wt2-row-'+id);if(!row)return;
+  const ns=row.querySelector('.list-item-name');const eb=row.querySelector('.list-edit');
+  ns.innerHTML=`<input class="list-item-edit-input" id="wt2-inp-${id}" value="${esc(w.name)}">`;
+  eb.innerHTML='<i class="ti ti-check"></i>';eb.className='list-save';eb.onclick=()=>saveEditWT2(id);
+  const cb=document.createElement('button');cb.className='list-cancel';cb.textContent='✕';cb.onclick=()=>renderWorkTypesList2();eb.after(cb);
+  document.getElementById('wt2-inp-'+id)?.focus();
+}
+async function saveEditWT2(id){
+  const inp=document.getElementById('wt2-inp-'+id);if(!inp)return;
+  const name=inp.value.trim();if(!name)return;const o=cfg();
+  await fetch(o.url+'/rest/v1/work_types?id=eq.'+id,{method:'PATCH',
+    headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key},body:JSON.stringify({name})});
+  const i=workTypesList.findIndex(w=>w.id===id);if(i>=0)workTypesList[i].name=name;
+  renderWorkTypesList2();
+}
+async function addProject2(){
+  const name=(document.getElementById('proj-new2')?.value||'').trim();
+  if(!name){toast('proj2-toast','⚠ Βάλε όνομα.','warn');return}
+  const o=cfg();
+  try{
+    const r=await fetch(o.url+'/rest/v1/projects',{method:'POST',
+      headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key,'Prefer':'return=representation'},
+      body:JSON.stringify({name,active:true,sort_order:projectsList.length+1})});
+    if(r.ok){const d=await r.json();projectsList.push(d[0]);document.getElementById('proj-new2').value='';
+      renderProjectsList2();toast('proj2-toast','✓ Προστέθηκε!','ok');}
+    else toast('proj2-toast','✗ Σφάλμα','err');
+  }catch(e){toast('proj2-toast','✗ '+e.message,'err')}
+}
+async function toggleProj2(id,active){
+  const o=cfg();
+  await fetch(o.url+'/rest/v1/projects?id=eq.'+id,{method:'PATCH',
+    headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key},body:JSON.stringify({active})});
+  const i=projectsList.findIndex(p=>p.id===id);if(i>=0)projectsList[i].active=active;
+  renderProjectsList2();
+}
+async function deleteProj2(id){
+  if(!confirm('Διαγραφή;'))return;const o=cfg();
+  await fetch(o.url+'/rest/v1/projects?id=eq.'+id,{method:'DELETE',headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}});
+  projectsList=projectsList.filter(p=>p.id!==id);renderProjectsList2();
+}
+function startEditProj2(id){
+  const p=projectsList.find(x=>x.id===id);if(!p)return;
+  const row=document.getElementById('proj2-row-'+id);if(!row)return;
+  const ns=row.querySelector('.list-item-name');const eb=row.querySelector('.list-edit');
+  ns.innerHTML=`<input class="list-item-edit-input" id="proj2-inp-${id}" value="${esc(p.name)}">`;
+  eb.innerHTML='<i class="ti ti-check"></i>';eb.className='list-save';eb.onclick=()=>saveEditProj2(id);
+  const cb=document.createElement('button');cb.className='list-cancel';cb.textContent='✕';cb.onclick=()=>renderProjectsList2();eb.after(cb);
+  document.getElementById('proj2-inp-'+id)?.focus();
+}
+async function saveEditProj2(id){
+  const inp=document.getElementById('proj2-inp-'+id);if(!inp)return;
+  const name=inp.value.trim();if(!name)return;const o=cfg();
+  await fetch(o.url+'/rest/v1/projects?id=eq.'+id,{method:'PATCH',
+    headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key},body:JSON.stringify({name})});
+  const i=projectsList.findIndex(p=>p.id===id);if(i>=0)projectsList[i].name=name;
+  renderProjectsList2();
+}
+
+async function loadManageData(){
+  const o=cfg();if(!o.url||!o.key)return;
+  try{
+    const [r1,r2,r3]=await Promise.all([
+      fetch(o.url+'/rest/v1/categories?order=sort_order.asc',{headers:{apikey:o.key,'Authorization':'Bearer '+o.key}}),
+      fetch(o.url+'/rest/v1/work_types?order=sort_order.asc',{headers:{apikey:o.key,'Authorization':'Bearer '+o.key}}),
+      fetch(o.url+'/rest/v1/projects?order=sort_order.asc,name.asc',{headers:{apikey:o.key,'Authorization':'Bearer '+o.key}})
+    ]);
+    if(r1.ok)categoriesList=await r1.json();
+    if(r2.ok)workTypesList=await r2.json();
+    if(r3.ok)projectsList=await r3.json();
+    renderCatList();renderWorkTypesList2();renderProjectsList2();
+    // Update filter dropdowns
+    const fcs=document.getElementById('filter-cat-sel');
+    if(fcs){fcs.innerHTML='<option value="">— Όλες οι κατηγορίες —</option>';categoriesList.forEach(c=>{fcs.innerHTML+=`<option value="${c.id}">${esc(c.name)}</option>`});}
+    const wcs=document.getElementById('wt-cat-sel');
+    if(wcs){wcs.innerHTML='<option value="">— Κατηγορία —</option>';categoriesList.forEach(c=>{wcs.innerHTML+=`<option value="${c.id}">${esc(c.name)}</option>`});}
+    // Update tech form dropdowns
+    populateCategories('e-cat');populateCategories('m-cat');
+  }catch(e){console.error(e)}
+}
+
+// CATEGORIES CRUD
+function renderCatList(){
+  const el=document.getElementById('cat-list');if(!el)return;
+  if(!categoriesList.length){el.innerHTML='<div style="font-size:13px;color:var(--txt2);padding:8px 0">Δεν υπάρχουν κατηγορίες.</div>';return}
+  el.innerHTML=categoriesList.map(c=>`
+    <div class="list-item" id="cat-row-${c.id}">
+      <span class="list-item-name">${esc(c.name)}</span>
+      <button class="list-edit" onclick="startEditCat(${c.id})"><i class="ti ti-pencil"></i></button>
+      <button class="list-toggle ${c.active?'lt-on':'lt-off'}" onclick="toggleCat(${c.id},${!c.active})">${c.active?'Ενεργό':'Κρυφό'}</button>
+      <button class="list-del" onclick="deleteCat(${c.id})"><i class="ti ti-trash"></i></button>
+    </div>`).join('');
+  // Also refresh wt-cat-sel
+  const sel=document.getElementById('wt-cat-sel');
+  if(sel){
+    sel.innerHTML='<option value="">— Κατηγορία —</option>';
+    categoriesList.forEach(c=>{sel.innerHTML+=`<option value="${c.id}">${esc(c.name)}</option>`});
+  }
+}
+async function addCat(){
+  const name=document.getElementById('cat-new').value.trim();if(!name)return;
+  const o=cfg();
+  try{
+    const r=await fetch(o.url+'/rest/v1/categories',{method:'POST',
+      headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key,'Prefer':'return=representation'},
+      body:JSON.stringify({name,active:true,sort_order:categoriesList.length+1})});
+    if(r.ok){const d=await r.json();categoriesList.push(d[0]);document.getElementById('cat-new').value='';
+      renderCatList();populateCategories('e-cat');populateCategories('m-cat');
+      toast('cat-toast','✓ Η κατηγορία προστέθηκε!','ok');}
+    else toast('cat-toast','✗ Σφάλμα','err');
+  }catch(e){toast('cat-toast','✗ '+e.message,'err')}
+}
+async function toggleCat(id,active){
+  const o=cfg();
+  await fetch(o.url+'/rest/v1/categories?id=eq.'+id,{method:'PATCH',
+    headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key},
+    body:JSON.stringify({active})});
+  const i=categoriesList.findIndex(c=>c.id===id);if(i>=0)categoriesList[i].active=active;
+  renderCatList();populateCategories('e-cat');populateCategories('m-cat');
+}
+async function deleteCat(id){
+  if(!confirm('Διαγραφή κατηγορίας; Τα είδη εργασίας της θα παραμείνουν στη βάση.'))return;
+  const o=cfg();
+  await fetch(o.url+'/rest/v1/categories?id=eq.'+id,{method:'DELETE',
+    headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}});
+  categoriesList=categoriesList.filter(c=>c.id!==id);renderCatList();
+  populateCategories('e-cat');populateCategories('m-cat');
+}
+function startEditCat(id){
+  const c=categoriesList.find(x=>x.id===id);if(!c)return;
+  const row=document.getElementById('cat-row-'+id);if(!row)return;
+  const nameSpan=row.querySelector('.list-item-name');
+  const editBtn=row.querySelector('.list-edit');
+  nameSpan.innerHTML=`<input class="list-item-edit-input" id="cat-inp-${id}" value="${esc(c.name)}">`;
+  editBtn.innerHTML='<i class="ti ti-check"></i>';editBtn.className='list-save';
+  editBtn.onclick=()=>saveEditCat(id);
+  const cancelBtn=document.createElement('button');
+  cancelBtn.className='list-cancel';cancelBtn.textContent='✕';
+  cancelBtn.onclick=()=>renderCatList();
+  editBtn.after(cancelBtn);
+  document.getElementById('cat-inp-'+id).focus();
+}
+async function saveEditCat(id){
+  const inp=document.getElementById('cat-inp-'+id);if(!inp)return;
+  const name=inp.value.trim();if(!name)return;
+  const o=cfg();
+  await fetch(o.url+'/rest/v1/categories?id=eq.'+id,{method:'PATCH',
+    headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key},
+    body:JSON.stringify({name})});
+  const i=categoriesList.findIndex(c=>c.id===id);if(i>=0)categoriesList[i].name=name;
+  renderCatList();populateCategories('e-cat');populateCategories('m-cat');
+}
+
+// WT CRUD
+async function addWorkType(){
+  const name=gv('wt-new').trim();if(!name){toast('wt-toast','⚠ Βάλε όνομα.','warn');return}
+  const catSel=document.getElementById('wt-cat-sel');
+  const category_id=catSel&&catSel.value?parseInt(catSel.value):null;
+  if(!category_id){toast('wt-toast','⚠ Επίλεξε κατηγορία.','warn');return}
+  const o=cfg();
+  try{
+    const r=await fetch(o.url+'/rest/v1/work_types',{method:'POST',
+      headers:{'Content-Type':'application/json','apikey':o.key,'Authorization':'Bearer '+o.key,'Prefer':'return=representation'},
+      body:JSON.stringify({name,active:true,category_id,sort_order:workTypesList.length+1})});
     if(r.ok){const d=await r.json();workTypesList.push(d[0]);sv('wt-new','');renderWorkTypesList();
-      populateWorkTypes('e-wtype');populateWorkTypes('m-wtype');populateWorkTypes('ae-wtype');
       toast('wt-toast','✓ Προστέθηκε!','ok');}
     else toast('wt-toast','✗ Σφάλμα','err');
   }catch(e){toast('wt-toast','✗ '+e.message,'err')}
@@ -750,13 +1027,18 @@ async function autoSync(entry){
 async function loadWorkTypes(){
   const o=cfg();if(!o.url||!o.key)return;
   try{
-    const r=await fetch(o.url+'/rest/v1/work_types?visible=eq.true&order=sort_order.asc',{
-      headers:{'apikey':o.key,'Authorization':'Bearer '+o.key}
-    });
-    if(!r.ok)return;
-    const types=await r.json();
-    const sel=document.getElementById('e-type');
-    if(sel){sel.innerHTML=types.map(t=>`<option value="${t.name}">${t.name}</option>`).join('');}
+    // Load categories first
+    const rc=await fetch(o.url+'/rest/v1/categories?order=sort_order.asc',
+      {headers:{apikey:o.key,'Authorization':'Bearer '+o.key}});
+    if(rc.ok) categoriesList=await rc.json();
+    // Load work types
+    const rw=await fetch(o.url+'/rest/v1/work_types?order=sort_order.asc',
+      {headers:{apikey:o.key,'Authorization':'Bearer '+o.key}});
+    if(rw.ok) workTypesList=await rw.json();
+    // Populate category dropdowns
+    populateCategories('e-cat');
+    populateCategories('m-cat');
+    // Work types will populate when category is selected
   }catch(e){}
 }
 
