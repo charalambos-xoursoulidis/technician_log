@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Επιλογή Υλικών v1.0 — ΑΦΟΙ Χουρσουλίδη</title>
+<title>Επιλογή Υλικών v1.1 — ΑΦΟΙ Χουρσουλίδη</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{--bg:#14181d;--panel:#1c222a;--tile:#232b35;--tile-hi:#2c3744;--line:#323d4a;--text:#e6ebf0;--muted:#8b97a6;--accent:#ffb020;--info:#4aa3ff;--ok:#36c47a;--bad:#ef5b5b;--mavro:#9aa6b3;--r:14px;}
@@ -111,7 +111,7 @@
 </head>
 <body>
 <header>
-  <div class="brand"><b>Επιλογή Υλικών<span class="ver">v1.0</span></b><small>ΑΦΟΙ Χουρσουλίδη</small></div>
+  <div class="brand"><b>Επιλογή Υλικών<span class="ver">v1.1</span></b><small>ΑΦΟΙ Χουρσουλίδη</small></div>
   <div class="spacer"></div>
   <button class="gear-btn" onclick="openGx()" title="Αντιστοίχιση Galaxy">⚙</button>
   <button class="cart-btn" onclick="openCart()"><span class="t">Καλάθι</span><span class="badge" id="badge">0</span></button>
@@ -1041,9 +1041,28 @@ if(!SHOW_PRICES){var _vr=$('#valRow'),_vn=$('#vatNote');if(_vr)_vr.style.display
 /* ---- Embedded mode (μέσα στο Ημερολόγιο Εργασιών) ---- */
 const MP_EMBED=new URLSearchParams(location.search).has('embed')||window.parent!==window;
 function mpUnitFor(desc){return /^Σωλήν/.test(desc||'')?'μέτρα':'τεμάχια';}
-function mpAddToOrder(){
+// Παράγει μικρή μικρογραφία (JPEG ~48px) από την base64 εικόνα του είδους, για να φαίνεται στην παραγγελία
+function mpThumb(dataUrl,px){px=px||48;return new Promise(function(res){
+  if(!dataUrl){res('');return;}
+  var img=new Image();
+  img.onload=function(){try{
+    var c=document.createElement('canvas');c.width=c.height=px;
+    var g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,px,px);
+    var s=Math.min(px/img.naturalWidth,px/img.naturalHeight);
+    var w=img.naturalWidth*s,h=img.naturalHeight*s;
+    g.drawImage(img,(px-w)/2,(px-h)/2,w,h);
+    res(c.toDataURL('image/jpeg',0.6));
+  }catch(e){res('');}};
+  img.onerror=function(){res('');};
+  img.src=dataUrl;
+});}
+async function mpAddToOrder(){
   const arr=cartArr();if(!arr.length){flash('Το καλάθι είναι άδειο');return;}
-  const items=arr.map(i=>({item:i.desc,unit:mpUnitFor(i.desc),qty:i.qty,code:i.code,ref:'#'+NUM(i.code),galaxy:(GALAXY[i.code]||i.rcode||'')}));
+  const items=[];
+  for(const i of arr){
+    const thumb=await mpThumb(IMG[i.imgkey]||'',48);
+    items.push({item:i.desc,unit:mpUnitFor(i.desc),qty:i.qty,code:i.code,ref:'#'+NUM(i.code),galaxy:(GALAXY[i.code]||i.rcode||''),thumb:thumb});
+  }
   try{parent.postMessage({type:'mp-add',items:items},'*');}catch(e){}
   state.cart={};render();closeCart();flash('Προστέθηκαν στην παραγγελία ✓');
 }
