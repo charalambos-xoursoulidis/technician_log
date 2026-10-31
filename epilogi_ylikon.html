@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Επιλογή Υλικών v1.1 — ΑΦΟΙ Χουρσουλίδη</title>
+<title>Επιλογή Υλικών v1.2 — ΑΦΟΙ Χουρσουλίδη</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{--bg:#14181d;--panel:#1c222a;--tile:#232b35;--tile-hi:#2c3744;--line:#323d4a;--text:#e6ebf0;--muted:#8b97a6;--accent:#ffb020;--info:#4aa3ff;--ok:#36c47a;--bad:#ef5b5b;--mavro:#9aa6b3;--r:14px;}
@@ -111,7 +111,7 @@
 </head>
 <body>
 <header>
-  <div class="brand"><b>Επιλογή Υλικών<span class="ver">v1.1</span></b><small>ΑΦΟΙ Χουρσουλίδη</small></div>
+  <div class="brand"><b>Επιλογή Υλικών<span class="ver">v1.2</span></b><small>ΑΦΟΙ Χουρσουλίδη</small></div>
   <div class="spacer"></div>
   <button class="gear-btn" onclick="openGx()" title="Αντιστοίχιση Galaxy">⚙</button>
   <button class="cart-btn" onclick="openCart()"><span class="t">Καλάθι</span><span class="badge" id="badge">0</span></button>
@@ -1034,8 +1034,9 @@ function exportXLS(){
   const proj=(state.project||'').trim().replace(/[^0-9A-Za-zΑ-Ωα-ωά-ώΆ-Ώ_-]/g,'_');
   XLSX.writeFile(wb,`Galaxy_Ylika${proj?'_'+proj:''}_${stamp}.xlsx`);flash('Το αρχείο δημιουργήθηκε ✓');
 }
-const CODE2NUM={},CATNUM={};(function(){DATA.categories.forEach((c,ci)=>{CATNUM[c.id]=ci+1;let n=0;for(const t of catTypes(c)){for(const r of sizeRows(c,t)){n++;CODE2NUM[codeFor(c,t,r.label)]=(ci+1)+'-'+String(n).padStart(2,'0');}}});})();
+const CODE2NUM={},CATNUM={},CODE2META={};(function(){DATA.categories.forEach((c,ci)=>{CATNUM[c.id]=ci+1;let n=0;for(const t of catTypes(c)){for(const r of sizeRows(c,t)){n++;const cd=codeFor(c,t,r.label);CODE2NUM[cd]=(ci+1)+'-'+String(n).padStart(2,'0');CODE2META[cd]={c:c,t:t,label:r.label};}}});})();
 function NUM(code){return CODE2NUM[code]||'';}
+function metaByCode(code){const m=CODE2META[code];return m?metaFor(m.c,m.t,m.label):null;}
 if(!SHOW_PRICES){var _vr=$('#valRow'),_vn=$('#vatNote');if(_vr)_vr.style.display='none';if(_vn)_vn.style.display='none';}
 
 /* ---- Embedded mode (μέσα στο Ημερολόγιο Εργασιών) ---- */
@@ -1063,10 +1064,28 @@ async function mpAddToOrder(){
     const thumb=await mpThumb(IMG[i.imgkey]||'',48);
     items.push({item:i.desc,unit:mpUnitFor(i.desc),qty:i.qty,code:i.code,ref:'#'+NUM(i.code),galaxy:(GALAXY[i.code]||i.rcode||''),thumb:thumb});
   }
-  try{parent.postMessage({type:'mp-add',items:items},'*');}catch(e){}
+  // Στέλνουμε ΟΛΟ το καλάθι (mp-set = πλήρης αντικατάσταση των ειδών καταλόγου στην παραγγελία)
+  try{parent.postMessage({type:'mp-set',items:items},'*');}catch(e){}
   state.cart={};render();closeCart();flash('Προστέθηκαν στην παραγγελία ✓');
 }
 function mpClose(){try{parent.postMessage({type:'mp-close'},'*');}catch(e){}}
+// Φόρτωση υπαρχόντων ειδών καταλόγου στο καλάθι (όταν ανοίγει από υπάρχουσα παραγγελία)
+function mpLoadItems(items){
+  state.cart={};
+  (items||[]).forEach(function(it){
+    if(!it.code)return;                 // ελεύθερα είδη (χωρίς κωδικό) δεν μπαίνουν στον κατάλογο
+    var m=metaByCode(it.code);if(!m)return;
+    state.cart[it.code]=Object.assign({},m,{qty:(parseFloat(it.qty)||0)});
+  });
+  render();
+  if(Object.keys(state.cart).length)openCart();  // αν έχει είδη, άνοιξε κατευθείαν το ΚΑΛΑΘΙ
+}
+if(MP_EMBED){
+  window.addEventListener('message',function(ev){
+    var d=ev.data||{};
+    if(d.type==='mp-load'&&Array.isArray(d.items))mpLoadItems(d.items);
+  });
+}
 if(MP_EMBED){
   document.body.classList.add('embed');
   var _g=$('.gear-btn');if(_g)_g.style.display='none';
@@ -1077,6 +1096,7 @@ if(MP_EMBED){
   if(_hd){var _cb=document.createElement('button');_cb.className='gear-btn';_cb.textContent='✕';_cb.title='Κλείσιμο';_cb.style.marginRight='0';_cb.onclick=mpClose;_hd.appendChild(_cb);}
 }
 render();updateGalaxyStatus();
+if(MP_EMBED){try{parent.postMessage({type:'mp-ready'},'*');}catch(e){}}
 </script>
 </body>
 </html>
