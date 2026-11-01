@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Επιλογή Υλικών v1.2 — ΑΦΟΙ Χουρσουλίδη</title>
+<title>Επιλογή Υλικών v1.3 — ΑΦΟΙ Χουρσουλίδη</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{--bg:#14181d;--panel:#1c222a;--tile:#232b35;--tile-hi:#2c3744;--line:#323d4a;--text:#e6ebf0;--muted:#8b97a6;--accent:#ffb020;--info:#4aa3ff;--ok:#36c47a;--bad:#ef5b5b;--mavro:#9aa6b3;--r:14px;}
@@ -111,7 +111,7 @@
 </head>
 <body>
 <header>
-  <div class="brand"><b>Επιλογή Υλικών<span class="ver">v1.2</span></b><small>ΑΦΟΙ Χουρσουλίδη</small></div>
+  <div class="brand"><b>Επιλογή Υλικών<span class="ver">v1.3</span></b><small>ΑΦΟΙ Χουρσουλίδη</small></div>
   <div class="spacer"></div>
   <button class="gear-btn" onclick="openGx()" title="Αντιστοίχιση Galaxy">⚙</button>
   <button class="cart-btn" onclick="openCart()"><span class="t">Καλάθι</span><span class="badge" id="badge">0</span></button>
@@ -955,11 +955,33 @@ function clearCart(){if(Object.keys(state.cart).length&&confirm('Άδειασμ�
 const cartArr=()=>Object.values(state.cart);
 const totalQty=()=>cartArr().reduce((s,i)=>s+i.qty,0);
 const totalVal=()=>cartArr().reduce((s,i)=>s+(i.price||0)*i.qty,0);
+let cartTab='items'; // 'items' (είδη/ποσότητες) | 'found' (βρέθηκε στην αποθήκη) — μόνο σε embed
+function setCartTab(t){cartTab=t;renderCart();}
+function setFound(code,val){const it=state.cart[code];if(!it)return;it.found=(val===''?null:(parseFloat(val)||0));
+  const req=parseFloat(it.qty)||0;const rem=Math.max(req-(it.found||0),0);const el=document.getElementById('cr-'+code);
+  if(el){el.textContent=rem;el.style.color=rem>0?'#c0392b':'#15803d';}}
 function renderCart(){
   const arr=cartArr();$('#badge').textContent=arr.length;$('#sumLines').textContent=arr.length;$('#sumQty').textContent=totalQty();$('#sumVal').textContent=eur(totalVal());
   const list=$('#cartList');
-  if(!arr.length){list.innerHTML=`<div class="cart-empty">Το καλάθι είναι άδειο.<br>Επιλέξτε υλικά για να ξεκινήσετε.</div>`;return;}
-  list.innerHTML=arr.map(i=>`<div class="ci ${i.mv?'mv':''}"><div class="ci-ico">${pic(i.imgkey,i.mv,i.icon)}</div><div class="ci-main"><div class="ci-desc">${i.desc}</div><div class="ci-meta">#${NUM(i.code)} · ${i.code}${(SHOW_PRICES&&i.price!=null)?' · '+eur(i.price):''}</div></div><div class="stepper"><button onclick="setQty('${i.code}',-1)">−</button><span class="q" onclick="editQty('${i.code}')">${i.qty}</span><button onclick="setQty('${i.code}',1)">+</button></div><button class="del" onclick="delItem('${i.code}')">🗑</button></div>`).join('');
+  const tabs = MP_EMBED ? `<div style="display:flex;gap:6px;margin-bottom:8px">
+      <button onclick="setCartTab('items')" style="flex:1;padding:8px;border:none;border-radius:8px;font-weight:700;cursor:pointer;background:${cartTab==='items'?'#2563eb':'#e2e8f0'};color:${cartTab==='items'?'#fff':'#334155'}">🛒 Είδη</button>
+      <button onclick="setCartTab('found')" style="flex:1;padding:8px;border:none;border-radius:8px;font-weight:700;cursor:pointer;background:${cartTab==='found'?'#15803d':'#e2e8f0'};color:${cartTab==='found'?'#fff':'#334155'}">📦 Βρέθηκε</button>
+    </div>` : '';
+  if(!arr.length){list.innerHTML=tabs+`<div class="cart-empty">Το καλάθι είναι άδειο.<br>Επιλέξτε υλικά για να ξεκινήσετε.</div>`;return;}
+  if(MP_EMBED && cartTab==='found'){
+    list.innerHTML=tabs+`<div style="display:flex;align-items:center;gap:6px;padding:4px 2px;font-size:10px;color:#64748b;font-weight:700;border-bottom:1px solid #e2e8f0">
+        <span style="flex:1;min-width:0">ΥΛΙΚΟ</span><span style="width:38px;text-align:right">Ζήτ.</span><span style="width:62px;text-align:center;color:#15803d">Βρέθηκε</span><span style="width:38px;text-align:right;color:#c0392b">Υπόλ.</span>
+      </div>`+arr.map(i=>{const req=parseFloat(i.qty)||0;const fv=i.found!=null?i.found:'';const rem=Math.max(req-(parseFloat(i.found)||0),0);
+      return `<div style="display:flex;align-items:center;gap:6px;padding:5px 2px;border-bottom:1px solid #f1f5f9">
+        <div style="width:30px;flex-shrink:0">${pic(i.imgkey,i.mv,i.icon)}</div>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;font-size:13px" title="${i.desc}">${i.desc}</span>
+        <span style="width:38px;text-align:right;font-weight:700">${i.qty}</span>
+        <input type="number" min="0" step="any" value="${fv}" oninput="setFound('${i.code}',this.value)" style="width:58px;text-align:center;padding:5px;font-weight:700">
+        <span id="cr-${i.code}" style="width:38px;text-align:right;font-weight:800;color:${rem>0?'#c0392b':'#15803d'}">${rem}</span>
+      </div>`;}).join('');
+    return;
+  }
+  list.innerHTML=tabs+arr.map(i=>`<div class="ci ${i.mv?'mv':''}"><div class="ci-ico">${pic(i.imgkey,i.mv,i.icon)}</div><div class="ci-main"><div class="ci-desc">${i.desc}</div><div class="ci-meta">#${NUM(i.code)} · ${i.code}${(SHOW_PRICES&&i.price!=null)?' · '+eur(i.price):''}</div></div><div class="stepper"><button onclick="setQty('${i.code}',-1)">−</button><span class="q" onclick="editQty('${i.code}')">${i.qty}</span><button onclick="setQty('${i.code}',1)">+</button></div><button class="del" onclick="delItem('${i.code}')">🗑</button></div>`).join('');
 }
 function openCart(){$('#drawer').classList.add('show');$('#overlay').classList.add('show');}
 function closeCart(){$('#drawer').classList.remove('show');$('#overlay').classList.remove('show');}
@@ -1062,7 +1084,7 @@ async function mpAddToOrder(){
   const items=[];
   for(const i of arr){
     const thumb=await mpThumb(IMG[i.imgkey]||'',48);
-    items.push({item:i.desc,unit:mpUnitFor(i.desc),qty:i.qty,code:i.code,ref:'#'+NUM(i.code),galaxy:(GALAXY[i.code]||i.rcode||''),thumb:thumb});
+    items.push({item:i.desc,unit:mpUnitFor(i.desc),qty:i.qty,code:i.code,ref:'#'+NUM(i.code),galaxy:(GALAXY[i.code]||i.rcode||''),thumb:thumb,found:(i.found!=null?i.found:null)});
   }
   // Στέλνουμε ΟΛΟ το καλάθι (mp-set = πλήρης αντικατάσταση των ειδών καταλόγου στην παραγγελία)
   try{parent.postMessage({type:'mp-set',items:items},'*');}catch(e){}
@@ -1075,10 +1097,10 @@ function mpLoadItems(items){
   (items||[]).forEach(function(it){
     if(!it.code)return;                 // ελεύθερα είδη (χωρίς κωδικό) δεν μπαίνουν στον κατάλογο
     var m=metaByCode(it.code);if(!m)return;
-    state.cart[it.code]=Object.assign({},m,{qty:(parseFloat(it.qty)||0)});
+    state.cart[it.code]=Object.assign({},m,{qty:(parseFloat(it.qty)||0),found:(it.found!=null?it.found:null)});
   });
   render();
-  if(Object.keys(state.cart).length)openCart();  // αν έχει είδη, άνοιξε κατευθείαν το ΚΑΛΑΘΙ
+  if(Object.keys(state.cart).length){cartTab='found';render();openCart();}  // άνοιγμα υπάρχουσας → καρτέλα «Βρέθηκε»
 }
 if(MP_EMBED){
   window.addEventListener('message',function(ev){
