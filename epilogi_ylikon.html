@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Επιλογή Υλικών v1.8 — ΑΦΟΙ Χουρσουλίδη</title>
+<title>Επιλογή Υλικών v1.9 — ΑΦΟΙ Χουρσουλίδη</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{--bg:#14181d;--panel:#1c222a;--tile:#232b35;--tile-hi:#2c3744;--line:#323d4a;--text:#e6ebf0;--muted:#8b97a6;--accent:#ffb020;--info:#4aa3ff;--ok:#36c47a;--bad:#ef5b5b;--mavro:#9aa6b3;--r:14px;}
@@ -111,7 +111,7 @@
 </head>
 <body>
 <header>
-  <div class="brand"><b>Επιλογή Υλικών<span class="ver">v1.8</span></b><small>ΑΦΟΙ Χουρσουλίδη</small></div>
+  <div class="brand"><b>Επιλογή Υλικών<span class="ver">v1.9</span></b><small>ΑΦΟΙ Χουρσουλίδη</small></div>
   <div class="spacer"></div>
   <button class="gear-btn" onclick="openGx()" title="Αντιστοίχιση Galaxy">⚙</button>
   <button class="cart-btn" onclick="openCart()"><span class="t">Καλάθι</span><span class="badge" id="badge">0</span></button>
@@ -1014,11 +1014,16 @@ function kpAdd(n){kp.val=String((parseInt(kp.val||'0',10)||0)+n);kp.fresh=false;
 function kpConfirm(){const q=parseInt(kp.val||'0',10)||0;setCartQty(kp.meta,q);kpCancel();if(q>0)flash(q+' τεμ. · '+kp.meta.desc);}
 function kpCancel(){$('#kpOv').classList.remove('show');$('#kp').classList.remove('show');}
 
-function setCartQty(meta,q){const code=meta.code;if(q<=0){delete state.cart[code];}else{if(!state.cart[code])state.cart[code]={...meta,qty:0};state.cart[code].qty=q;}render();}
-function setQty(code,d){const it=state.cart[code];if(!it)return;it.qty+=d;if(it.qty<=0)delete state.cart[code];render();}
-function delItem(code){delete state.cart[code];render();}
+function setCartQty(meta,q){const code=meta.code;if(q<=0){delete state.cart[code];}else{if(!state.cart[code])state.cart[code]={...meta,qty:0};state.cart[code].qty=q;}render();saveCatDraft();}
+function setQty(code,d){const it=state.cart[code];if(!it)return;it.qty+=d;if(it.qty<=0)delete state.cart[code];render();saveCatDraft();}
+function delItem(code){delete state.cart[code];render();saveCatDraft();}
 function editQty(code){const it=state.cart[code];if(it)openKeypadMeta(it);}
-function clearCart(){if(Object.keys(state.cart).length&&confirm('Άδειασμα καλαθιού;')){state.cart={};render();}}
+function clearCart(){if(Object.keys(state.cart).length&&confirm('Άδειασμα καλαθιού;')){state.cart={};render();clearCatDraft();}}
+// ===== Autosave προχείρου καλαθιού (ώστε να μη χάνονται οι επιλογές αν κλείσει η σελίδα) =====
+const CAT_DRAFT_KEY='afoi_cat_draft_v1';
+function saveCatDraft(){try{const k=Object.keys(state.cart);if(!k.length){localStorage.removeItem(CAT_DRAFT_KEY);return;}localStorage.setItem(CAT_DRAFT_KEY,JSON.stringify(state.cart));}catch(e){}}
+function clearCatDraft(){try{localStorage.removeItem(CAT_DRAFT_KEY);}catch(e){}}
+function restoreCatDraft(){try{const s=JSON.parse(localStorage.getItem(CAT_DRAFT_KEY)||'null');if(s&&typeof s==='object'&&Object.keys(s).length){state.cart=s;return true;}}catch(e){}return false;}
 const cartArr=()=>Object.values(state.cart);
 const totalQty=()=>cartArr().reduce((s,i)=>s+i.qty,0);
 const totalVal=()=>cartArr().reduce((s,i)=>s+(i.price||0)*i.qty,0);
@@ -1026,7 +1031,7 @@ let cartTab='items'; // 'items' (είδη/ποσότητες) | 'found' (βρέ�
 function setCartTab(t){cartTab=t;renderCart();}
 function setFound(code,val){const it=state.cart[code];if(!it)return;it.found=(val===''?null:(parseFloat(val)||0));
   const req=parseFloat(it.qty)||0;const rem=Math.max(req-(it.found||0),0);const el=document.getElementById('cr-'+code);
-  if(el){el.textContent=rem;el.style.color=rem>0?'#c0392b':'#15803d';}}
+  if(el){el.textContent=rem;el.style.color=rem>0?'#c0392b':'#15803d';}saveCatDraft();}
 function renderCart(){
   const arr=cartArr();$('#badge').textContent=arr.length;$('#sumLines').textContent=arr.length;$('#sumQty').textContent=totalQty();$('#sumVal').textContent=eur(totalVal());
   const list=$('#cartList');
@@ -1155,17 +1160,18 @@ async function mpAddToOrder(){
   }
   // Στέλνουμε ΟΛΟ το καλάθι (mp-set = πλήρης αντικατάσταση των ειδών καταλόγου στην παραγγελία)
   try{parent.postMessage({type:'mp-set',items:items},'*');}catch(e){}
-  state.cart={};render();closeCart();flash('Προστέθηκαν στην παραγγελία ✓');
+  state.cart={};clearCatDraft();render();closeCart();flash('Προστέθηκαν στην παραγγελία ✓');
 }
 function mpClose(){try{parent.postMessage({type:'mp-close'},'*');}catch(e){}}
 // Φόρτωση υπαρχόντων ειδών καταλόγου στο καλάθι (όταν ανοίγει από υπάρχουσα παραγγελία)
 function mpLoadItems(items){
-  state.cart={};
+  // ΣΥΓΧΩΝΕΥΣΗ με ό,τι υπάρχει ήδη (π.χ. ανακτημένο πρόχειρο) — η παραγγελία καθορίζει ποσότητα/βρέθηκε
   (items||[]).forEach(function(it){
     if(!it.code)return;                 // ελεύθερα είδη (χωρίς κωδικό) δεν μπαίνουν στον κατάλογο
     var m=metaByCode(it.code);if(!m)return;
-    state.cart[it.code]=Object.assign({},m,{qty:(parseFloat(it.qty)||0),found:(it.found!=null?it.found:null)});
+    state.cart[it.code]=Object.assign({},m,state.cart[it.code]||{},{qty:(parseFloat(it.qty)||0),found:(it.found!=null?it.found:null)});
   });
+  saveCatDraft();
   render();
   if(Object.keys(state.cart).length){cartTab='found';render();openCart();}  // άνοιγμα υπάρχουσας → καρτέλα «Βρέθηκε»
 }
@@ -1184,6 +1190,7 @@ if(MP_EMBED){
   var _hd=document.querySelector('header');
   if(_hd){var _cb=document.createElement('button');_cb.className='gear-btn';_cb.textContent='✕';_cb.title='Κλείσιμο';_cb.style.marginRight='0';_cb.onclick=mpClose;_hd.appendChild(_cb);}
 }
+if(restoreCatDraft()&&!MP_EMBED){try{openCart();}catch(e){}}  // ανάκτηση προχείρου καλαθιού αν έκλεισε η σελίδα
 render();updateGalaxyStatus();
 if(MP_EMBED){try{parent.postMessage({type:'mp-ready'},'*');}catch(e){}}
 </script>
