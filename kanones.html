@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Κανόνες Συμπεριφοράς v1.0 – ΑΦΟΙ Χουρσουλίδη</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--txt:#1a2230;--txt2:#5b6676;--brd:#e3e7ee;--brd2:#cfd6e0;--red:#c0392b;--red2:#a5302490;--ok:#15803d;--ok-bg:#eafaf0;--blue:#2563eb;--r:14px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f141b;--card:#1a212b;--txt:#e7ecf3;--txt2:#9aa6b4;--brd:#2a3340;--brd2:#39445400;--ok:#4ade80;--ok-bg:#12351f;--blue:#60a5fa}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;padding:0 0 40px}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px}
+header{background:var(--red);color:#fff;padding:18px 16px 16px;position:sticky;top:0;z-index:5;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+header .wrap{padding:0 16px}
+h1{margin:0;font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px}
+.sub{font-size:12px;opacity:.9;margin-top:3px}
+.ver{font-size:11px;opacity:.8}
+.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--r);padding:14px 16px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+h2{font-size:15px;font-weight:800;color:var(--red);margin:22px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--brd)}
+.rule{margin:12px 0}
+.rt{font-weight:700;font-size:14px;margin-bottom:3px}
+.rt b{color:var(--blue);margin-right:4px}
+.rd{font-size:13.5px;color:var(--txt)}
+ul.sub-list{margin:6px 0 0;padding-left:20px}
+ul.sub-list li{font-size:13px;margin:3px 0}
+.who{background:var(--card);border:1px solid var(--brd2);border-radius:var(--r);padding:14px 16px;margin:16px 0}
+.who label{display:block;font-size:12px;font-weight:700;color:var(--txt2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
+select,.btn{width:100%;font-size:15px;border-radius:10px;font-family:inherit}
+select{padding:11px;border:1px solid var(--brd2);background:var(--bg);color:var(--txt)}
+.ackbox{text-align:center;margin:10px 0 0}
+.btn{padding:15px;border:none;font-weight:800;cursor:pointer;color:#fff;background:var(--ok);margin-top:12px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn-sec{background:var(--card);color:var(--txt);border:1px solid var(--brd2)}
+.note{font-size:12px;color:var(--txt2);text-align:center;margin-top:10px}
+#done{display:none;position:fixed;inset:0;background:var(--ok);color:#fff;z-index:50;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}
+#done .ic{font-size:70px;margin-bottom:10px}
+#done h2{color:#fff;border:none;font-size:22px;margin:0 0 6px}
+#done p{font-size:15px;opacity:.95;max-width:360px}
+#done button{margin-top:22px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.5);color:#fff;padding:13px 26px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
+.err{color:var(--red);font-size:13px;text-align:center;margin-top:8px;font-weight:600}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>📋 Κανόνες Λειτουργίας &amp; Συμπεριφοράς</h1>
+  <div class="sub">Τεχνικού Προσωπικού · ΑΦΟΙ Χουρσουλίδη <span class="ver">· v1.0 (Νοέμβριος 2026)</span></div>
+</div></header>
+
+<div class="wrap">
+  <div class="card" style="margin-top:16px">
+    <div style="font-size:13.5px;color:var(--txt2)">Ισχύουν για όλους, από τον νεοπροσλαμβανόμενο βοηθό έως τον εργοδηγό. Διάβασέ τους προσεκτικά και στο τέλος επιβεβαίωσε ότι έλαβες γνώση.</div>
+  </div>
+
+  <div id="rules"></div>
+
+  <!-- Ποιος είμαι -->
+  <div class="who" id="who-box">
+    <label>Ποιος είσαι;</label>
+    <div id="who-fixed" style="display:none;font-size:15px;font-weight:700"></div>
+    <select id="who-sel" style="display:none"><option value="">— Διάλεξε το όνομά σου —</option></select>
+  </div>
+
+  <!-- Επιβεβαίωση -->
+  <div class="ackbox">
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px">Έλαβα γνώση του περιεχομένου;</div>
+    <div class="note" style="margin-top:2px">Πατώντας «Επιβεβαιώνω», δηλώνεις ότι διάβασες και κατανόησες τους παραπάνω κανόνες.</div>
+    <button class="btn" id="ack-btn" onclick="acknowledge()">✓ Επιβεβαιώνω ότι έλαβα γνώση</button>
+    <div class="err" id="err" style="display:none"></div>
+  </div>
+  <div class="note">ΑΦΟΙ Χουρσουλίδη · Ημερολόγιο Εργασιών</div>
+</div>
+
+<!-- Οθόνη ολοκλήρωσης -->
+<div id="done">
+  <div class="ic">✓</div>
+  <h2>Έλαβες γνώση!</h2>
+  <p id="done-msg">Ευχαριστούμε. Η δήλωσή σου καταγράφηκε. Μπορείς να κλείσεις αυτό το παράθυρο.</p>
+  <button onclick="closeWin()">Κλείσιμο</button>
+</div>
+
+<script>
+const SB_URL='https://nizuttqemqcpjyewwddp.supabase.co';
+const SB_KEY='sb_publishable_svX2UeTzNJHfTJlVG4X-bg_mBkKHmnn';
+const DOC_VERSION='Νοέμβριος 2026';
+
+// ---- Κείμενο κανόνων ----
+const RULES=[
+ {h:'Α. Συνέπεια και παρουσία',items:[
+   {t:'Έγκαιρη προσέλευση',d:'Όποιος δεν βρίσκεται στην έδρα ή στο έργο στην ώρα έναρξης, έτοιμος για εργασία, χωρίς να έχει ενημερώσει τον εργοδηγό πριν από αυτήν:',list:[
+     'έχει 3 ευκαιρίες, οι οποίες καταγράφονται.',
+     'Από την 4η φορά, χρεώνεται ημέρα άδειας για την ημέρα της αργοπορίας.',
+     'Σε περίπτωση συστηματικής αδικαιολόγητης καθυστέρησης που θα προκύψει από το καθημερινό παρουσιολόγιο, ο χρόνος καθυστέρησης θα αφαιρείται από τα τελικά ωρομίσθια.',
+     'Η κατ’ εξακολούθηση αργοπορία και μη συμμόρφωση οδηγούν τελικώς στη διακοπή συνεργασίας.']},
+   {t:'Προγραμματισμένες άδειες και απουσίες',d:'Η άδεια ζητείται 15 μέρες νωρίτερα. Σε ασθένεια ή έκτακτο λόγο ενημερώνουμε τον εργοδηγό το ίδιο πρωί, πριν την έναρξη.'},
+   {t:'Τήρηση ωραρίου και διαλειμμάτων',d:'Το διάλειμμα έχει συγκεκριμένη διάρκεια, 20 λεπτά, και γίνεται πάντα κατόπιν συνεννόησης με τον υπεύθυνο του έργου. Δεν αποχωρούμε από το έργο νωρίτερα χωρίς άδεια του εργοδηγού.'},
+   {t:'Τήρηση δεσμεύσεων',d:'Ό,τι αναλαμβάνουμε το ολοκληρώνουμε. Αν δεν προλαβαίνουμε, το λέμε έγκαιρα, ώστε να αναπρογραμματιστεί η δουλειά.'}
+ ]},
+ {h:'Β. Ασφάλεια',items:[
+   {t:'Μέσα ατομικής προστασίας πάντα',d:'Παπούτσια ασφαλείας, γάντια, γυαλιά, κράνος και ζώνη όπου απαιτούνται. Κανείς δεν δουλεύει χωρίς αυτά, ανεξαρτήτως διάρκειας της εργασίας. Κάθε όχημα οφείλει να έχει τουλάχιστον μία ζώνη ασφάλειας.'},
+   {t:'Σταματώ όταν δεν είναι ασφαλές',d:'Σκαλωσιές, εργασίες σε ύψος, ηλεκτρικά, συγκολλήσεις και φυσικό αέριο: αν κάτι δεν είναι ασφαλές, σταματώ και ενημερώνω τον εργοδηγό. Κανείς δεν τιμωρείται επειδή σταμάτησε για λόγους ασφαλείας.'},
+   {t:'Μηδενική ανοχή σε αλκοόλ και ουσίες',d:'Απαγορεύεται ρητά η κατανάλωση αλκοόλ πριν ή κατά τη διάρκεια της εργασίας και η οδήγηση εταιρικού οχήματος υπό την επήρεια. Η μη συμμόρφωση είναι λόγος για την άμεση απόλυση του εργαζομένου.'}
+ ]},
+ {h:'Γ. Σεβασμός και συνεργασία',items:[
+   {t:'Σεβασμός σε όλους',d:'Σε συναδέλφους, πελάτες, μηχανικούς και άλλα συνεργεία. Όχι φωνές, ύβρεις ή υποτιμητικά σχόλια, σε κανένα επίπεδο ιεραρχίας.'},
+   {t:'Αλληλοβοήθεια και καθοδήγηση',d:'Ο έμπειρος δείχνει στον νεότερο. Ο νεότερος ρωτά όταν δεν ξέρει, αντί να μαντεύει. Καμία ερώτηση δεν είναι χαζή.'},
+   {t:'Διαφωνίες με διάλογο, μέσω του υπευθύνου',d:'Οι διαφωνίες λύνονται ήρεμα και ιδιωτικά, με τον εργοδηγό ή τον υπεύθυνο έργου. Ποτέ μπροστά στον πελάτη ή σε τρίτους.'},
+   {t:'Ιεραρχία και πρωτοβουλία',d:'Ακολουθούμε τις οδηγίες του εργοδηγού. Προτάσεις και βελτιώσεις είναι ευπρόσδεκτες και ακούγονται, αλλά η απόφαση στο έργο είναι του υπευθύνου.'}
+ ]},
+ {h:'Δ. Υλικά, εργαλεία και αποθήκη',items:[
+   {t:'Έγκαιρη λίστα υλικών',list:[
+     'Ο υπεύθυνος του έργου δίνει τη λίστα υλικών κάθε φάσης τουλάχιστον 2 εργάσιμες ημέρες πριν, με βάση σχέδια, προμέτρηση και αυτοψία. Όπου υπάρχει τυποποιημένη λίστα, τη χρησιμοποιούμε.',
+     'Όλα τα υλικά/εργαλεία που χρειάζονται καθημερινά οργανώνονται στην αρχή της ημέρας ή στο τέλος της για την επόμενη.']},
+   {t:'Καταγραφή στο Viber του έργου',d:'Κάθε ανάγκη, παραλαβή, επιστροφή ή έλλειψη υλικού γράφεται στην ομάδα Viber του συγκεκριμένου έργου, όχι σε προσωπικά μηνύματα ή προφορικά.'},
+   {t:'Κανένα υλικό χωρίς καταγραφή',d:'Τίποτα δεν βγαίνει από την αποθήκη χωρίς καταγραφή με όνομα έργου. Τα περισσεύματα επιστρέφουν στην αποθήκη με σήμανση από ποιο έργο προέρχονται.'},
+   {t:'Φροντίδα εργαλείων και οχημάτων',d:'Τα εργαλεία επιστρέφουν καθαρά και στη θέση τους. Κάθε βλάβη ή απώλεια αναφέρεται την ίδια ημέρα. Το όχημα παραδίδεται καθαρό και τακτοποιημένο.'}
+ ]},
+ {h:'Ε. Ποιότητα και πελάτης',items:[
+   {t:'Καθαρός χώρος εργασίας',d:'Στο τέλος κάθε ημέρας ο χώρος μένει καθαρός και τα υλικά τακτοποιημένα και προστατευμένα. Ο χώρος του πελάτη αντιμετωπίζεται σαν το σπίτι μας.'},
+   {t:'Ποιότητα και έλεγχος πριν το κλείσιμο',d:'Δουλεύουμε σύμφωνα με τα σχέδια και τις οδηγίες. Δοκιμές πίεσης, στεγανότητας και λειτουργίας γίνονται πριν κλείσουν τοίχοι, δάπεδα και ψευδοροφές.'},
+   {t:'Σωστή στάση απέναντι στον πελάτη',d:'Ευγένεια πάντα. Δεν συζητάμε τιμές, πληρωμές ή πρόσθετες εργασίες με τον πελάτη. Αλλαγές εκτελούνται μόνο με έγκριση του γραφείου και παραπέμπουμε τον πελάτη στον υπεύθυνο.'}
+ ]},
+ {h:'ΣΤ. Επικοινωνία και εξέλιξη',items:[
+   {t:'Ενημέρωση στο τέλος της ημέρας',d:'Ο υπεύθυνος του έργου ενημερώνει για την πρόοδο, τα προβλήματα και τις ανάγκες της επόμενης ημέρας, με φωτογραφίες στο Viber του έργου.'},
+   {t:'Προετοιμασία, εκπαίδευση και αξιολόγηση',d:'Ερχόμαστε προετοιμασμένοι στις συναντήσεις, συμμετέχουμε στην εκπαίδευση και στην αυτοαξιολόγηση, και δεχόμαστε την αξιολόγηση ως εργαλείο εξέλιξης, όχι τιμωρίας.'}
+ ]}
+];
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+// render κανόνων
+(function(){
+  let n=0,html='';
+  RULES.forEach(sec=>{
+    html+='<h2>'+esc(sec.h)+'</h2><div class="card">';
+    sec.items.forEach(it=>{n++;
+      html+='<div class="rule"><div class="rt"><b>'+n+'.</b>'+esc(it.t)+'</div>';
+      if(it.d)html+='<div class="rd">'+esc(it.d)+'</div>';
+      if(it.list){html+='<ul class="sub-list">'+it.list.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';}
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  document.getElementById('rules').innerHTML=html;
+})();
+
+// ---- Ταυτοποίηση τεχνικού ----
+const params=new URLSearchParams(location.search);
+let CODE=(params.get('code')||'').trim().toUpperCase();
+let NAME=(params.get('name')||'').trim();
+const whoFixed=document.getElementById('who-fixed'),whoSel=document.getElementById('who-sel');
+
+async function initWho(){
+  if(CODE){
+    whoFixed.style.display='block';
+    whoFixed.textContent=NAME?('👤 '+NAME+' ('+CODE+')'):('👤 Κωδικός: '+CODE);
+    if(!NAME){ // βρες όνομα από τον κωδικό
+      try{const r=await fetch(SB_URL+'/rest/v1/technicians?code=eq.'+encodeURIComponent(CODE)+'&select=name',{headers:hdr()});
+        if(r.ok){const j=await r.json();if(j[0]&&j[0].name){NAME=j[0].name;whoFixed.textContent='👤 '+NAME+' ('+CODE+')';}}}catch(e){}
+    }
+    return;
+  }
+  // χωρίς κωδικό: λίστα τεχνικών για επιλογή
+  whoSel.style.display='block';
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/technicians?select=code,name&order=name.asc',{headers:hdr()});
+    if(r.ok){const techs=await r.json();
+      techs.forEach(t=>{const o=document.createElement('option');o.value=t.code;o.textContent=t.name+' ('+t.code+')';whoSel.appendChild(o);});
+    }
+  }catch(e){}
+}
+function hdr(){return {apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY}}
+
+async function acknowledge(){
+  const err=document.getElementById('err');err.style.display='none';
+  let code=CODE,name=NAME;
+  if(!code){ code=whoSel.value; name=whoSel.selectedOptions[0]?whoSel.selectedOptions[0].textContent.replace(/\s*\([^)]*\)\s*$/,''):''; }
+  if(!code){ err.textContent='Διάλεξε πρώτα το όνομά σου.'; err.style.display='block'; return; }
+  const btn=document.getElementById('ack-btn');btn.disabled=true;btn.textContent='Καταχώριση…';
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/rules_ack',{method:'POST',
+      headers:{...hdr(),'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({tech_code:code,tech_name:name,doc_version:DOC_VERSION,acknowledged_at:new Date().toISOString()})});
+    if(!r.ok){throw new Error('HTTP '+r.status);}
+    document.getElementById('done-msg').textContent='Ευχαριστούμε'+(name?(', '+name):'')+'. Η δήλωσή σου καταγράφηκε στις '+new Date().toLocaleString('el-GR')+'. Μπορείς να κλείσεις αυτό το παράθυρο.';
+    const d=document.getElementById('done');d.style.display='flex';
+    setTimeout(()=>{try{window.close();}catch(e){}},1200); // προσπάθεια αυτόματου κλεισίματος
+  }catch(e){
+    btn.disabled=false;btn.textContent='✓ Επιβεβαιώνω ότι έλαβα γνώση';
+    err.textContent='Δεν καταχωρήθηκε (έλεγξε τη σύνδεση). Προσπάθησε ξανά.';err.style.display='block';
+  }
+}
+function closeWin(){try{window.close();}catch(e){} location.href='about:blank';}
+initWho();
+</script>
+</body>
+</html>
